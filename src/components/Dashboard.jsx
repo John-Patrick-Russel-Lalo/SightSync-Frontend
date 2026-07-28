@@ -1,6 +1,8 @@
 import React from "react";
 import { useAuth } from "../context/AuthContext";
 
+import PatientProfileForm from "./PatientProfileForm";
+
 export default function Dashboard() {
   const { user, logout } = useAuth();
 
@@ -27,6 +29,8 @@ export default function Dashboard() {
             Authenticated session active via HTTP-Only cookies.
           </p>
         </div>
+
+        <PatientProfileForm />
 
         {/* User Metadata */}
         <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-md">

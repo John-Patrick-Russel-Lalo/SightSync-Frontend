@@ -39,7 +39,7 @@ export const AuthProvider = ({ children }) => {
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || "Login failed");
     setUser(data.user);
-    return data;
+    return data.user;
   };
 
   const register = async (formData) => {

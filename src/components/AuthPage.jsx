@@ -1,8 +1,13 @@
+
+
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 export default function AuthPage() {
   const { login, register, API_BASE } = useAuth();
+  const navigate = useNavigate();
+
   const [isLogin, setIsLogin] = useState(true);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -20,14 +25,26 @@ export default function AuthPage() {
 
     try {
       if (isLogin) {
-        await login(email, password);
+        // 1. Perform login and retrieve user object
+        const user = await login(email, password);
+
+        // 2. Route based on user role (falls back to user object or decoded role)
+        const role = user?.role;
+
+        if (role === "admin") {
+          navigate("/admin", { replace: true });
+        } else if (role === "doctor") {
+          navigate("/doctor/dashboard", { replace: true });
+        } else {
+          navigate("/dashboard", { replace: true });
+        }
       } else {
         await register({ firstName, lastName, email, password });
         setIsLogin(true);
         setError("Account created successfully! Please sign in.");
       }
     } catch (err) {
-      setError(err.message);
+      setError(err?.message || "An error occurred during authentication.");
     } finally {
       setSubmitting(false);
     }

@@ -1,233 +1,600 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+
 import { useAuth } from "../context/AuthContext";
 import {
   Users,
   ShieldCheck,
-  Activity,
-  AlertCircle,
   Search,
-  UserCheck,
   UserX,
   LogOut,
   Bell,
   Settings,
+  Loader2,
+  Stethoscope,
+  User,
+  Globe,
+  Share2,
+  Calendar,
+  Package,
+  Clock,
+  LayoutDashboard,
+  Plus,
+  AlertTriangle,
+  X,
+  Phone,
+  Heart,
+  FileText,
+  Edit3
 } from "lucide-react";
+import PatientManagementPage from "./admin/PatientManagementPage";
+import ScheduleAppointmentPage from "./admin/ScheduleAppointmentPage";
+import DoctorManagementPage from "./admin/DoctorManagementPage";
+
+// Express server mount point
+const API_USERS_URL = "http://localhost:3500/users";
+const API_PATIENTS_URL = "http://localhost:3500/patients";
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
+  const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Sample user management state (Replace with real API data)
-  const [users, setUsers] = useState([
-    { id: 1, name: "Alex Johnson", email: "alex@example.com", role: "admin", status: "Active" },
-    { id: 2, name: "Sarah Smith", email: "sarah@example.com", role: "editor", status: "Active" },
-    { id: 3, name: "Michael Brown", email: "michael@example.com", role: "user", status: "Inactive" },
-    { id: 4, name: "Emily Davis", email: "emily@example.com", role: "user", status: "Active" },
-  ]);
+  // State for Role Change Confirmation Modal
+  // Structure: { isOpen: boolean, userId: string/number, userDisplayName: string, currentRole: string, newRole: string }
+  const [roleChangeModal, setRoleChangeModal] = useState({
+    isOpen: false,
+    userId: null,
+    userDisplayName: "",
+    currentRole: "",
+    newRole: "",
+  });
 
-  const handleRoleChange = (userId, newRole) => {
-    setUsers((prev) =>
-      prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u))
-    );
+  // Navigation tab state: 'users' | 'patients' | 'inventory' | 'schedules' | 'doctor-schedules'
+  const [activeTab, setActiveTab] = useState("users");
+
+  // Unified fetch utility that automatically includes cookie credentials
+  const fetchWithCredentials = async (url, options = {}) => {
+    return fetch(url, {
+      ...options,
+      credentials: "include", // Sends session/HTTP-only cookies automatically
+      headers: {
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
+    });
   };
 
-  const handleToggleStatus = (userId) => {
-    setUsers((prev) =>
-      prev.map((u) =>
-        u.id === userId
-          ? { ...u, status: u.status === "Active" ? "Inactive" : "Active" }
-          : u
-      )
-    );
+  // 1. GET /users - Fetch all users
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await fetchWithCredentials(API_USERS_URL);
+
+      if (res.status === 401 || res.status === 403) {
+        throw new Error("Unauthorized: You must be an administrator.");
+      }
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to fetch users");
+      }
+
+      const data = await res.json();
+
+      const normalizedData = (Array.isArray(data) ? data : []).map((u) => ({
+        ...u,
+        status: u.status || "Active",
+      }));
+
+      setUsers(normalizedData);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const filteredUsers = users.filter(
-    (u) =>
-      u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  // Trigger modal when select dropdown changes
+  const initiateRoleChange = (u, newRole) => {
+    const currentRole = u.role || "patient";
+    if (newRole === currentRole) return;
+
+    setRoleChangeModal({
+      isOpen: true,
+      userId: u.id,
+      userDisplayName: getUserDisplayName(u),
+      currentRole,
+      newRole,
+    });
+  };
+
+  // Confirm role update and perform API request
+  const confirmRoleChange = async () => {
+    const { userId, newRole } = roleChangeModal;
+
+    try {
+      const res = await fetchWithCredentials(`${API_USERS_URL}/${userId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ role: newRole }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to update role");
+      }
+
+      setUsers((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u))
+      );
+    } catch (err) {
+      alert(`Role Update Failed: ${err.message}`);
+    } finally {
+      closeRoleModal();
+    }
+  };
+
+  const closeRoleModal = () => {
+    setRoleChangeModal({
+      isOpen: false,
+      userId: null,
+      userDisplayName: "",
+      currentRole: "",
+      newRole: "",
+    });
+  };
+
+  const getUserDisplayName = (u) => u.display_name || u.username || "Unknown User";
+
+  const renderProviderBadge = (provider) => {
+    switch (provider) {
+      case "facebook":
+        return (
+          <span className="inline-flex items-center gap-1.5 text-xs text-blue-700 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-200/60 font-medium">
+            <Share2 className="w-3 h-3" /> Facebook
+          </span>
+        );
+      case "github":
+        return (
+          <span className="inline-flex items-center gap-1.5 text-xs text-stone-700 bg-stone-200/60 px-2.5 py-1 rounded-full border border-stone-300/60 font-medium">
+            <Share2 className="w-3 h-3" /> GitHub
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center gap-1.5 text-xs text-amber-900 bg-amber-100/50 px-2.5 py-1 rounded-full border border-amber-200/60 font-medium">
+            <Globe className="w-3 h-3 text-amber-700" /> Local
+          </span>
+        );
+    }
+  };
+
+  const filteredUsers = users.filter((u) => {
+    const term = searchTerm.toLowerCase();
+    const nameMatch = getUserDisplayName(u).toLowerCase().includes(term);
+    const emailMatch = u.email ? u.email.toLowerCase().includes(term) : false;
+    const usernameMatch = u.username ? u.username.toLowerCase().includes(term) : false;
+    const matchesSearch = nameMatch || emailMatch || usernameMatch;
+
+    const matchesRole =
+      roleFilter === "all" ? true : (u.role || "patient").toLowerCase() === roleFilter;
+
+    return matchesSearch && matchesRole;
+  });
+
+  const navItems = [
+    { id: "users", label: "User Directory", icon: LayoutDashboard },
+    { id: "patients", label: "Patient Management", icon: User },
+    { id: "doctors", label: "Doctor Management", icon: User },
+    { id: "inventory", label: "Inventory Management", icon: Package },
+    { id: "schedules", label: "Schedule Management", icon: Calendar },
+    { id: "doctor-schedules", label: "Doctor Schedules", icon: Clock },
+  ];
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col">
-      {/* Navigation Header */}
-      <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-10 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="bg-indigo-600/20 text-indigo-400 p-2 rounded-lg">
-            <ShieldCheck className="w-6 h-6" />
+    <div className="min-h-screen bg-[#EDE3D8] text-stone-800 flex font-sans">
+      {/* Sidebar Navigation */}
+      <aside className="w-64 bg-[#EDE3D8] border-r border-[#DCD0C0] flex flex-col justify-between shrink-0 h-screen sticky top-0">
+        <div className="p-6 space-y-8">
+          <div className="flex items-center gap-3">
+            <div className="bg-[#8B1E42] text-white p-2.5 rounded-xl shadow-sm shrink-0">
+              <ShieldCheck className="w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="font-bold text-lg text-stone-900 leading-tight">Admin Portal</h1>
+              <span className="text-xs font-medium text-stone-500">System & Users</span>
+            </div>
           </div>
-          <div>
-            <h1 className="font-semibold text-lg leading-none">Admin Portal</h1>
-            <span className="text-xs text-slate-400">Control Panel</span>
-          </div>
+
+          <nav className="space-y-1.5">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id)}
+                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all ${
+                    isActive
+                      ? "bg-[#8B1E42] text-white shadow-sm"
+                      : "text-stone-600 hover:text-stone-900 hover:bg-[#E2D6C7]"
+                  }`}
+                >
+                  <Icon className="w-4 h-4 shrink-0" />
+                  <span className="truncate">{item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
         </div>
 
-        <div className="flex items-center gap-4">
-          <button className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition">
-            <Bell className="w-5 h-5" />
-          </button>
-          <button className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition">
-            <Settings className="w-5 h-5" />
-          </button>
-          <div className="h-6 w-px bg-slate-800" />
-          <div className="flex items-center gap-3">
-            <div className="text-right">
-              <div className="text-sm font-medium">{user?.name || "Admin User"}</div>
-              <div className="text-xs text-slate-400 uppercase tracking-wider">{user?.role || "admin"}</div>
+        <div className="p-4 border-t border-[#DCD0C0] bg-[#E8DDD0]/50 flex items-center justify-between">
+          <div className="overflow-hidden mr-2">
+            <div className="text-sm font-semibold text-stone-900 truncate">
+              {user?.display_name || user?.name || user?.username || "Admin User"}
             </div>
-            <button
-              onClick={logout}
-              className="p-2 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-lg transition"
-              title="Logout"
-            >
-              <LogOut className="w-5 h-5" />
-            </button>
+            <div className="text-xs text-[#8B1E42] font-semibold uppercase tracking-wider truncate">
+              {user?.role || "admin"}
+            </div>
           </div>
+          <button
+            onClick={logout}
+            className="p-2 text-rose-700 hover:text-rose-800 hover:bg-rose-100/60 rounded-xl transition shrink-0"
+            title="Logout"
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
         </div>
-      </header>
+      </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 p-6 max-w-7xl w-full mx-auto space-y-6">
-        {/* Quick Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <StatCard
-            title="Total Users"
-            value={users.length}
-            icon={<Users className="w-5 h-5 text-indigo-400" />}
-            trend="+12% from last month"
-          />
-          <StatCard
-            title="Active Sessions"
-            value="42"
-            icon={<Activity className="w-5 h-5 text-emerald-400" />}
-            trend="Normal load"
-          />
-          <StatCard
-            title="Admins"
-            value={users.filter((u) => u.role === "admin").length}
-            icon={<ShieldCheck className="w-5 h-5 text-amber-400" />}
-            trend="Strict access"
-          />
-          <StatCard
-            title="System Alerts"
-            value="0"
-            icon={<AlertCircle className="w-5 h-5 text-rose-400" />}
-            trend="All services operational"
-          />
+      <div className="flex-1 flex flex-col min-w-0 min-h-screen">
+        <header className="border-b border-[#DCD0C0] bg-[#EDE3D8]/90 backdrop-blur sticky top-0 z-10 px-8 py-4 flex items-center justify-end">
+          <div className="flex items-center gap-2">
+            <button className="p-2 text-stone-600 hover:text-stone-900 rounded-xl hover:bg-[#E2D6C7] transition">
+              <Bell className="w-5 h-5" />
+            </button>
+            <button className="p-2 text-stone-600 hover:text-stone-900 rounded-xl hover:bg-[#E2D6C7] transition">
+              <Settings className="w-5 h-5" />
+            </button>
+          </div>
+        </header>
+
+        <main className="flex-1 p-8 max-w-7xl w-full mx-auto space-y-8">
+          {activeTab === "users" && (
+            <div className="space-y-8">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl font-bold text-stone-900">System Dashboard</h2>
+                  <p className="text-sm text-stone-600">
+                    Overview of all active database user accounts, roles, and privileges.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+                <StatCard
+                  title="Total Accounts"
+                  value={users.length}
+                  icon={<Users className="w-5 h-5 text-[#8B1E42]" />}
+                  trend="Live Database Count"
+                />
+                <StatCard
+                  title="Patients"
+                  value={users.filter((u) => u.role === "patient").length}
+                  icon={<User className="w-5 h-5 text-emerald-700" />}
+                  trend="Registered Patients"
+                />
+                <StatCard
+                  title="Doctors"
+                  value={users.filter((u) => u.role === "doctor").length}
+                  icon={<Stethoscope className="w-5 h-5 text-cyan-700" />}
+                  trend="Verified Staff"
+                />
+                <StatCard
+                  title="Admins"
+                  value={users.filter((u) => u.role === "admin").length}
+                  icon={<ShieldCheck className="w-5 h-5 text-amber-700" />}
+                  trend="System Administrators"
+                />
+              </div>
+
+              <section className="bg-[#F8F3EC] border border-[#DCD0C0] rounded-2xl shadow-sm overflow-hidden">
+                <div className="p-6 border-b border-[#EBE3D8] flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#FAF7F2]">
+                  <div>
+                    <h3 className="text-lg font-bold text-stone-900">User Directory</h3>
+                    <p className="text-xs text-stone-500 mt-0.5">
+                      Manage accounts, role assignments, and account statuses.
+                    </p>
+                  </div>
+                  <div className="flex flex-col sm:flex-row items-center gap-3">
+                    <div className="relative w-full sm:w-auto">
+                      <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
+                      <input
+                        type="text"
+                        placeholder="Search by name, username, email..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10 pr-4 py-2 bg-[#F2EAE1] border border-[#DCD0C0] rounded-xl text-sm text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#8B1E42]/20 focus:border-[#8B1E42] w-full sm:w-72 transition"
+                      />
+                    </div>
+                    {/* Role Filter Dropdown */}
+                    <div className="relative w-full sm:w-auto">
+                      <select
+                        value={roleFilter}
+                        onChange={(e) => setRoleFilter(e.target.value)}
+                        className="w-full sm:w-auto bg-[#F2EAE1] border border-[#DCD0C0] rounded-xl px-3 py-2 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[#8B1E42]/20 focus:border-[#8B1E42] cursor-pointer font-medium"
+                      >
+                        <option value="all">All Roles</option>
+                        <option value="patient">Patients</option>
+                        <option value="doctor">Doctors</option>
+                        <option value="admin">Admins</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  {loading ? (
+                    <div className="p-16 flex items-center justify-center gap-3 text-stone-500">
+                      <Loader2 className="w-6 h-6 animate-spin text-[#8B1E42]" />
+                      <span className="text-sm font-medium">Fetching user records...</span>
+                    </div>
+                  ) : error ? (
+                    <div className="p-10 text-center bg-rose-50/50">
+                      <p className="font-semibold text-rose-800">Failed to load data</p>
+                      <p className="text-xs text-stone-600 mt-1">{error}</p>
+                      <button
+                        onClick={fetchUsers}
+                        className="mt-4 px-4 py-2 bg-[#8B1E42] text-white rounded-xl text-xs font-semibold hover:bg-[#731836] transition shadow-sm"
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  ) : (
+                    <table className="w-full text-left text-sm text-stone-700">
+                      <thead className="bg-[#F2EAE1]/80 text-xs uppercase text-stone-500 tracking-wider border-b border-[#EBE3D8] font-semibold">
+                        <tr>
+                          <th className="px-6 py-3.5">User</th>
+                          <th className="px-6 py-3.5">Provider</th>
+                          <th className="px-6 py-3.5">Role</th>
+                          <th className="px-6 py-3.5">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#EBE3D8]">
+                        {filteredUsers.length > 0 ? (
+                          filteredUsers.map((u) => (
+                            <tr key={u.id} className="hover:bg-[#F2EAE1]/50 transition-colors">
+                              <td className="px-6 py-4">
+                                <div className="flex items-center gap-3">
+                                  {u.avatar_url ? (
+                                    <img
+                                      src={u.avatar_url}
+                                      alt={getUserDisplayName(u)}
+                                      className="w-10 h-10 rounded-full object-cover border border-[#DCD0C0]"
+                                    />
+                                  ) : (
+                                    <div className="w-10 h-10 rounded-full bg-[#E8DDD0] flex items-center justify-center font-bold text-[#8B1E42] border border-[#DCD0C0]">
+                                      {getUserDisplayName(u).charAt(0).toUpperCase()}
+                                    </div>
+                                  )}
+                                  <div>
+                                    <div className="font-bold text-stone-900">
+                                      {getUserDisplayName(u)}
+                                    </div>
+                                    <div className="text-xs text-stone-500">
+                                      {u.email || `@${u.username}`}
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+
+                              <td className="px-6 py-4">
+                                {renderProviderBadge(u.provider)}
+                              </td>
+
+                              <td className="px-6 py-4">
+                                <select
+                                  value={u.role || "patient"}
+                                  onChange={(e) => initiateRoleChange(u, e.target.value)}
+                                  className="bg-[#F2EAE1] border border-[#DCD0C0] rounded-xl px-3 py-1.5 text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-[#8B1E42]/20 focus:border-[#8B1E42] capitalize font-medium cursor-pointer"
+                                >
+                                  <option value="patient">Patient</option>
+                                  <option value="doctor">Doctor</option>
+                                  <option value="admin">Admin</option>
+                                </select>
+                              </td>
+
+                              <td className="px-6 py-4">
+                                <span
+                                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${
+                                    u.status === "Active"
+                                      ? "bg-emerald-100/70 text-emerald-800 border border-emerald-200"
+                                      : "bg-stone-200/70 text-stone-600 border border-stone-300"
+                                  }`}
+                                >
+                                  <span
+                                    className={`w-1.5 h-1.5 rounded-full ${
+                                      u.status === "Active" ? "bg-emerald-600" : "bg-stone-500"
+                                    }`}
+                                  />
+                                  {u.status || "Active"}
+                                </span>
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan="4" className="px-6 py-10 text-center text-stone-500">
+                              No users found matching your criteria.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              </section>
+            </div>
+          )}
+
+          {activeTab === "patients" && (
+            <PatientManagementPage
+              users={users}
+              fetchWithCredentials={fetchWithCredentials}
+            />
+          )}
+
+          {activeTab === "schedules" && <ScheduleAppointmentPage />}
+          {activeTab === "doctors" && <DoctorManagementPage users={users} />}
+
+          {activeTab === "inventory" && <InventoryManagementPage />}
+          {activeTab === "doctor-schedules" && <DoctorSchedulePage users={users} />}
+        </main>
+      </div>
+
+      {/* Custom Confirmation Modal */}
+      {roleChangeModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/40 backdrop-blur-sm animate-fade-in">
+          <div className="bg-[#F8F3EC] border border-[#DCD0C0] rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-6 relative">
+            <button
+              onClick={closeRoleModal}
+              className="absolute top-4 right-4 text-stone-400 hover:text-stone-700 p-1.5 rounded-xl hover:bg-[#EBE3D8] transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-amber-100 border border-amber-200 text-amber-800 rounded-2xl shrink-0">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-stone-900">Confirm Role Change</h3>
+                <p className="text-xs text-stone-500">System privilege adjustment</p>
+              </div>
+            </div>
+
+            <p className="text-sm text-stone-700 leading-relaxed">
+              Are you sure you want to change the role for{" "}
+              <strong className="text-stone-900 font-semibold">{roleChangeModal.userDisplayName}</strong> from{" "}
+              <span className="capitalize px-2 py-0.5 rounded bg-[#E8DDD0] text-stone-800 font-medium text-xs">
+                {roleChangeModal.currentRole}
+              </span>{" "}
+              to{" "}
+              <span className="capitalize px-2 py-0.5 rounded bg-[#8B1E42] text-white font-medium text-xs">
+                {roleChangeModal.newRole}
+              </span>
+              ?
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-2 border-t border-[#EBE3D8]">
+              <button
+                type="button"
+                onClick={closeRoleModal}
+                className="px-4 py-2 rounded-xl text-sm font-semibold text-stone-600 hover:bg-[#E2D6C7] transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmRoleChange}
+                className="px-4 py-2 rounded-xl text-sm font-semibold bg-[#8B1E42] text-white hover:bg-[#731836] shadow-sm transition"
+              >
+                Confirm Change
+              </button>
+            </div>
+          </div>
         </div>
-
-        {/* User Management Section */}
-        <section className="bg-slate-800/50 border border-slate-800 rounded-xl overflow-hidden">
-          {/* Table Header Controls */}
-          <div className="p-5 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h2 className="text-lg font-semibold">User Management</h2>
-              <p className="text-sm text-slate-400">
-                Manage accounts, role assignments, and account statuses.
-              </p>
-            </div>
-            <div className="relative">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search users..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 pr-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-full sm:w-64"
-              />
-            </div>
-          </div>
-
-          {/* User Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-300">
-              <thead className="bg-slate-900/60 text-xs uppercase text-slate-400 border-b border-slate-800">
-                <tr>
-                  <th className="px-6 py-3">User</th>
-                  <th className="px-6 py-3">Role</th>
-                  <th className="px-6 py-3">Status</th>
-                  <th className="px-6 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800">
-                {filteredUsers.length > 0 ? (
-                  filteredUsers.map((u) => (
-                    <tr key={u.id} className="hover:bg-slate-800/40 transition">
-                      <td className="px-6 py-4">
-                        <div className="font-medium text-slate-100">{u.name}</div>
-                        <div className="text-xs text-slate-500">{u.email}</div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <select
-                          value={u.role}
-                          onChange={(e) => handleRoleChange(u.id, e.target.value)}
-                          className="bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
-                        >
-                          <option value="user">User</option>
-                          <option value="editor">Editor</option>
-                          <option value="admin">Admin</option>
-                        </select>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            u.status === "Active"
-                              ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                              : "bg-slate-700/40 text-slate-400 border border-slate-700"
-                          }`}
-                        >
-                          <span
-                            className={`w-1.5 h-1.5 rounded-full ${
-                              u.status === "Active" ? "bg-emerald-400" : "bg-slate-500"
-                            }`}
-                          />
-                          {u.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <button
-                          onClick={() => handleToggleStatus(u.id)}
-                          className={`p-1.5 rounded-md hover:bg-slate-700 transition ${
-                            u.status === "Active"
-                              ? "text-rose-400 hover:text-rose-300"
-                              : "text-emerald-400 hover:text-emerald-300"
-                          }`}
-                          title={u.status === "Active" ? "Deactivate User" : "Activate User"}
-                        >
-                          {u.status === "Active" ? (
-                            <UserX className="w-4 h-4" />
-                          ) : (
-                            <UserCheck className="w-4 h-4" />
-                          )}
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="4" className="px-6 py-8 text-center text-slate-500">
-                      No users found matching "{searchTerm}"
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </main>
+      )}
     </div>
   );
 }
 
-// Reusable Stat Card Subcomponent
 function StatCard({ title, value, icon, trend }) {
   return (
-    <div className="bg-slate-800/50 border border-slate-800 p-5 rounded-xl space-y-2">
+    <div className="bg-[#F8F3EC] border border-[#DCD0C0] p-5 rounded-2xl shadow-sm space-y-3">
       <div className="flex items-center justify-between">
-        <span className="text-sm text-slate-400">{title}</span>
-        <div className="p-2 bg-slate-900 rounded-lg border border-slate-800">{icon}</div>
+        <span className="text-xs font-semibold uppercase tracking-wider text-stone-500">{title}</span>
+        <div className="p-2.5 bg-[#F2EAE1] rounded-xl border border-[#E3D8CC]">{icon}</div>
       </div>
-      <div className="text-2xl font-bold">{value}</div>
-      <div className="text-xs text-slate-500">{trend}</div>
+      <div className="text-3xl font-extrabold text-stone-900">{value}</div>
+      <div className="text-xs text-stone-500 font-medium">{trend}</div>
+    </div>
+  );
+}
+
+function InventoryManagementPage() {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-stone-900">Inventory Management</h2>
+          <p className="text-sm text-stone-600">Track medication stock levels, supplies, and replenishment schedules.</p>
+        </div>
+        <button className="flex items-center gap-2 bg-[#8B1E42] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#731836] transition shadow-sm">
+          <Plus className="w-4 h-4" /> Add Item
+        </button>
+      </div>
+
+      <div className="bg-[#F8F3EC] border border-[#DCD0C0] rounded-2xl p-6 shadow-sm">
+        <p className="text-stone-600 text-sm">Inventory stock data module loaded and connected.</p>
+      </div>
+    </div>
+  );
+}
+
+
+function DoctorSchedulePage({ users }) {
+  const doctors = users.filter((u) => u.role === "doctor");
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-stone-900">Doctor Schedules</h2>
+          <p className="text-sm text-stone-600">Manage duty shifts and consultation availability for medical staff.</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {doctors.length > 0 ? (
+          doctors.map((doc) => (
+            <div key={doc.id} className="bg-[#F8F3EC] border border-[#DCD0C0] rounded-2xl p-5 space-y-4 shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-cyan-100 flex items-center justify-center text-cyan-800 font-bold border border-cyan-200">
+                  <Stethoscope className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-stone-900">{doc.display_name || doc.username}</h3>
+                  <span className="text-xs text-stone-500">{doc.email || "No email available"}</span>
+                </div>
+              </div>
+
+              <div className="bg-[#F2EAE1] p-3 rounded-xl space-y-2 border border-[#E3D8CC] text-xs">
+                <div className="flex justify-between text-stone-700">
+                  <span className="font-medium">Shift Hours:</span>
+                  <span>08:00 AM - 04:00 PM</span>
+                </div>
+                <div className="flex justify-between text-stone-700">
+                  <span className="font-medium">Duty Days:</span>
+                  <span>Mon - Fri</span>
+                </div>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="col-span-2 bg-[#F8F3EC] border border-[#DCD0C0] rounded-2xl p-6 text-center text-stone-500">
+            No active doctor accounts assigned in system.
+          </div>
+        )}
+      </div>
     </div>
   );
 }

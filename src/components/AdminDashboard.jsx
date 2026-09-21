@@ -5,9 +5,6 @@ import {
   Users,
   ShieldCheck,
   Search,
-  UserX,
-  LogOut,
-  Bell,
   Settings,
   Loader2,
   Stethoscope,
@@ -21,14 +18,12 @@ import {
   Plus,
   AlertTriangle,
   X,
-  Phone,
-  Heart,
-  FileText,
-  Edit3
 } from "lucide-react";
 import PatientManagementPage from "./admin/PatientManagementPage";
 import ScheduleAppointmentPage from "./admin/ScheduleAppointmentPage";
 import DoctorManagementPage from "./admin/DoctorManagementPage";
+import PortalLayout from "./PortalLayout";
+import SettingsPage from "./SettingsPage";
 
 // Express server mount point
 const API_USERS_URL = "http://localhost:3500/users";
@@ -192,82 +187,28 @@ export default function AdminDashboard() {
   const navItems = [
     { id: "users", label: "User Directory", icon: LayoutDashboard },
     { id: "patients", label: "Patient Management", icon: User },
-    { id: "doctors", label: "Doctor Management", icon: User },
+    { id: "doctors", label: "Doctor Management", icon: Stethoscope },
     { id: "inventory", label: "Inventory Management", icon: Package },
     { id: "schedules", label: "Schedule Management", icon: Calendar },
     { id: "doctor-schedules", label: "Doctor Schedules", icon: Clock },
+    { id: "settings", label: "Settings", icon: Settings, sectionEnd: true },
   ];
 
   return (
-    <div className="min-h-screen bg-[#EDE3D8] text-stone-800 flex font-sans">
-      {/* Sidebar Navigation */}
-      <aside className="w-64 bg-[#EDE3D8] border-r border-[#DCD0C0] flex flex-col justify-between shrink-0 h-screen sticky top-0">
-        <div className="p-6 space-y-8">
-          <div className="flex items-center gap-3">
-            <div className="bg-[#8B1E42] text-white p-2.5 rounded-xl shadow-sm shrink-0">
-              <ShieldCheck className="w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="font-bold text-lg text-stone-900 leading-tight">Admin Portal</h1>
-              <span className="text-xs font-medium text-stone-500">System & Users</span>
-            </div>
-          </div>
-
-          <nav className="space-y-1.5">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all ${
-                    isActive
-                      ? "bg-[#8B1E42] text-white shadow-sm"
-                      : "text-stone-600 hover:text-stone-900 hover:bg-[#E2D6C7]"
-                  }`}
-                >
-                  <Icon className="w-4 h-4 shrink-0" />
-                  <span className="truncate">{item.label}</span>
-                </button>
-              );
-            })}
-          </nav>
-        </div>
-
-        <div className="p-4 border-t border-[#DCD0C0] bg-[#E8DDD0]/50 flex items-center justify-between">
-          <div className="overflow-hidden mr-2">
-            <div className="text-sm font-semibold text-stone-900 truncate">
-              {user?.display_name || user?.name || user?.username || "Admin User"}
-            </div>
-            <div className="text-xs text-[#8B1E42] font-semibold uppercase tracking-wider truncate">
-              {user?.role || "admin"}
-            </div>
-          </div>
-          <button
-            onClick={logout}
-            className="p-2 text-rose-700 hover:text-rose-800 hover:bg-rose-100/60 rounded-xl transition shrink-0"
-            title="Logout"
-          >
-            <LogOut className="w-5 h-5" />
-          </button>
-        </div>
-      </aside>
-
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-screen">
-        <header className="border-b border-[#DCD0C0] bg-[#EDE3D8]/90 backdrop-blur sticky top-0 z-10 px-8 py-4 flex items-center justify-end">
-          <div className="flex items-center gap-2">
-            <button className="p-2 text-stone-600 hover:text-stone-900 rounded-xl hover:bg-[#E2D6C7] transition">
-              <Bell className="w-5 h-5" />
-            </button>
-            <button className="p-2 text-stone-600 hover:text-stone-900 rounded-xl hover:bg-[#E2D6C7] transition">
-              <Settings className="w-5 h-5" />
-            </button>
-          </div>
-        </header>
-
-        <main className="flex-1 p-8 max-w-7xl w-full mx-auto space-y-8">
+    <PortalLayout
+      title="Admin Portal"
+      subtitle="System & Users"
+      brandIcon={<ShieldCheck className="w-6 h-6" />}
+      navItems={navItems}
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+      user={user}
+      onLogout={logout}
+    >
+      {activeTab === "settings" ? (
+        <SettingsPage />
+      ) : (
+        <>
           {activeTab === "users" && (
             <div className="space-y-8">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -457,8 +398,8 @@ export default function AdminDashboard() {
 
           {activeTab === "inventory" && <InventoryManagementPage />}
           {activeTab === "doctor-schedules" && <DoctorSchedulePage users={users} />}
-        </main>
-      </div>
+        </>
+      )}
 
       {/* Custom Confirmation Modal */}
       {roleChangeModal.isOpen && (
@@ -513,7 +454,7 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
-    </div>
+    </PortalLayout>
   );
 }
 

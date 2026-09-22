@@ -1,4 +1,4 @@
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
@@ -10,12 +10,22 @@ import Unauthorized from "./components/Unauthorized";
 import ProtectedRoute from "./components/ProtectedRoute";
 import HomeRedirect from "./components/HomeRedirect";
 
+const LandingPage = lazy(() => import("./components/landing/LandingPage"));
+
 function AppRoutes() {
   const { user } = useAuth();
 
   return (
-    <Routes>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#EDE3D8] flex items-center justify-center text-stone-500 text-sm font-medium">
+          Loading…
+        </div>
+      }
+    >
+      <Routes>
       {/* Public Routes */}
+      <Route path="/" element={<LandingPage />} />
       <Route
         path="/login"
         element={user ? <HomeRedirect /> : <AuthPage />}
@@ -38,6 +48,7 @@ function AppRoutes() {
       {/* Catch-all Fallback */}
       <Route path="*" element={<HomeRedirect />} />
     </Routes>
+    </Suspense>
   );
 }
 

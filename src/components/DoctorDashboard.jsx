@@ -1026,8 +1026,6 @@ import { useAuth } from "../context/AuthContext";
 import {
   Search,
   FileText,
-  LogOut,
-  Bell,
   Stethoscope,
   ChevronLeft,
   ChevronRight,
@@ -1043,11 +1041,18 @@ import {
   Droplet,
   ShieldAlert,
   Shield,
+  Settings,
+  LayoutDashboard,
 } from "lucide-react";
+import PortalLayout from "./PortalLayout";
+import SettingsPage from "./SettingsPage";
 
 export default function DoctorDashboard() {
   const { user, logout } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Navigation tab state: 'appointments' | 'settings'
+  const [activeTab, setActiveTab] = useState("appointments");
 
   // State Management
   const [appointments, setAppointments] = useState([]);
@@ -1235,51 +1240,26 @@ export default function DoctorDashboard() {
     }
   };
 
+  const navItems = [
+    { id: "appointments", label: "Appointments", icon: LayoutDashboard },
+    { id: "settings", label: "Settings", icon: Settings, sectionEnd: true },
+  ];
+
   return (
-    <div className="min-h-screen bg-[#EDE3D8] text-[#3D2E28] flex flex-col">
-      {/* Top Navigation */}
-      <header className="border-b border-[#DCCFBF] bg-[#F8F3EC]/90 backdrop-blur sticky top-0 z-10 px-8 py-5 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="bg-[#8B1E42]/10 text-[#8B1E42] p-2.5 rounded-2xl">
-            <Stethoscope className="w-7 h-7" />
-          </div>
-          <div>
-            <h1 className="font-bold text-xl leading-none text-[#3D2E28]">
-              Doctor Portal
-            </h1>
-            <span className="text-xs text-[#8B7562]">Clinical Management</span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <button className="p-2.5 text-[#8B7562] hover:text-[#3D2E28] rounded-full hover:bg-[#EDE3D8] transition">
-            <Bell className="w-5 h-5" />
-          </button>
-          
-          <div className="h-6 w-px bg-[#DCCFBF]" />
-          
-          <div className="flex items-center gap-3">
-            <div className="text-right">
-              <div className="text-base font-semibold text-[#3D2E28]">
-                {user?.name || user?.email || "Doctor"}
-              </div>
-              <div className="text-xs text-[#8B1E42] font-medium uppercase tracking-wider">
-                {user?.role || "doctor"}
-              </div>
-            </div>
-            <button
-              onClick={logout}
-              className="p-2.5 text-[#8B1E42] hover:text-[#A32B54] hover:bg-[#8B1E42]/10 rounded-full transition"
-              title="Logout"
-            >
-              <LogOut className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content Area */}
-      <main className="flex-1 p-8 max-w-[1500px] w-full mx-auto">
+    <PortalLayout
+      title="Doctor Portal"
+      subtitle="Clinical Management"
+      brandIcon={<Stethoscope className="w-7 h-7" />}
+      navItems={navItems}
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+      user={user}
+      onLogout={logout}
+      maxWidth="max-w-[1500px]"
+    >
+      {activeTab === "settings" ? (
+        <SettingsPage />
+      ) : (
         <div className="flex flex-col lg:flex-row gap-8 items-start">
           
           {/* Appointments Table Section */}
@@ -1398,7 +1378,6 @@ export default function DoctorDashboard() {
             </div>
           </section>
 
-          {/* Calendar Box Section */}
           <div className="w-full lg:w-auto flex justify-start order-1 lg:order-2">
             <MonthCalendar
               scheduledDays={scheduledDays}
@@ -1407,7 +1386,7 @@ export default function DoctorDashboard() {
             />
           </div>
         </div>
-      </main>
+      )}
 
       {/* Options Modal with Patient Profile */}
       {selectedAppointment && (
@@ -1572,7 +1551,7 @@ export default function DoctorDashboard() {
           </div>
         </div>
       )}
-    </div>
+    </PortalLayout>
   );
 }
 

@@ -22,6 +22,7 @@ import {
 import PatientManagementPage from "./admin/PatientManagementPage";
 import ScheduleAppointmentPage from "./admin/ScheduleAppointmentPage";
 import DoctorManagementPage from "./admin/DoctorManagementPage";
+import InventoryManager from "./admin/InventoryManager";
 import PortalLayout from "./PortalLayout";
 import SettingsPage from "./SettingsPage";
 
@@ -396,7 +397,7 @@ export default function AdminDashboard() {
           {activeTab === "schedules" && <ScheduleAppointmentPage />}
           {activeTab === "doctors" && <DoctorManagementPage users={users} />}
 
-          {activeTab === "inventory" && <InventoryManagementPage />}
+          {activeTab === "inventory" && <InventoryManager />}
           {activeTab === "doctor-schedules" && <DoctorSchedulePage users={users} />}
         </>
       )}
@@ -471,25 +472,7 @@ function StatCard({ title, value, icon, trend }) {
   );
 }
 
-function InventoryManagementPage() {
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-stone-900">Inventory Management</h2>
-          <p className="text-sm text-stone-600">Track medication stock levels, supplies, and replenishment schedules.</p>
-        </div>
-        <button className="flex items-center gap-2 bg-[#8B1E42] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#731836] transition shadow-sm">
-          <Plus className="w-4 h-4" /> Add Item
-        </button>
-      </div>
 
-      <div className="bg-[#F8F3EC] border border-[#DCD0C0] rounded-2xl p-6 shadow-sm">
-        <p className="text-stone-600 text-sm">Inventory stock data module loaded and connected.</p>
-      </div>
-    </div>
-  );
-}
 
 
 function DoctorSchedulePage({ users }) {

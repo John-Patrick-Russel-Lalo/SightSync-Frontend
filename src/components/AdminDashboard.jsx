@@ -18,11 +18,13 @@ import {
   Plus,
   AlertTriangle,
   X,
+  ShoppingCart,
 } from "lucide-react";
 import PatientManagementPage from "./admin/PatientManagementPage";
 import ScheduleAppointmentPage from "./admin/ScheduleAppointmentPage";
 import DoctorManagementPage from "./admin/DoctorManagementPage";
 import InventoryManager from "./admin/InventoryManager";
+import PosManager from "./admin/PosManager";
 import PortalLayout from "./PortalLayout";
 import SettingsPage from "./SettingsPage";
 
@@ -48,7 +50,7 @@ export default function AdminDashboard() {
     newRole: "",
   });
 
-  // Navigation tab state: 'users' | 'patients' | 'inventory' | 'schedules' | 'doctor-schedules'
+  // Navigation tab state: 'users' | 'patients' | 'inventory' | 'pos' | 'schedules' | 'doctor-schedules'
   const [activeTab, setActiveTab] = useState("users");
 
   // Unified fetch utility that automatically includes cookie credentials
@@ -190,6 +192,7 @@ export default function AdminDashboard() {
     { id: "patients", label: "Patient Management", icon: User },
     { id: "doctors", label: "Doctor Management", icon: Stethoscope },
     { id: "inventory", label: "Inventory Management", icon: Package },
+    { id: "pos", label: "Point of Sale", icon: ShoppingCart },
     { id: "schedules", label: "Schedule Management", icon: Calendar },
     { id: "doctor-schedules", label: "Doctor Schedules", icon: Clock },
     { id: "settings", label: "Settings", icon: Settings, sectionEnd: true },
@@ -398,6 +401,7 @@ export default function AdminDashboard() {
           {activeTab === "doctors" && <DoctorManagementPage users={users} />}
 
           {activeTab === "inventory" && <InventoryManager />}
+          {activeTab === "pos" && <PosManager />}
           {activeTab === "doctor-schedules" && <DoctorSchedulePage users={users} />}
         </>
       )}

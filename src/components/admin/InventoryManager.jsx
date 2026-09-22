@@ -284,7 +284,11 @@ export default function InventoryManager() {
 
   // Item Deletion Handler
   const handleDelete = async (id, type) => {
-    if (!window.confirm("Are you sure you want to delete this item?")) return;
+    const isInventoryDelete = type === "inventory";
+    const confirmMsg = isInventoryDelete
+      ? "Archive this item? It will be hidden from inventory and POS, but sale history stays intact."
+      : "Are you sure you want to delete this catalog reference?";
+    if (!window.confirm(confirmMsg)) return;
     try {
       let endpoint = `${API_BASE_URL}/${id}`;
       if (type === "frames") endpoint = `${API_BASE_URL}/frames/${id}`;

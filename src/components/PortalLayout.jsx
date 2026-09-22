@@ -1,25 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Bell, Settings, LogOut, X } from "lucide-react";
 
 const DEFAULT_NOTIFICATIONS = [
-  {
-    id: 1,
-    title: "New appointment request",
-    detail: "A patient booked a new consultation slot.",
-    time: "2m ago",
-  },
-  {
-    id: 2,
-    title: "System maintenance",
-    detail: "Scheduled maintenance is set for Sunday at 02:00 AM.",
-    time: "1h ago",
-  },
-  {
-    id: 3,
-    title: "Profile update",
-    detail: "Your account profile was updated successfully.",
-    time: "1d ago",
-  },
+  
 ];
 
 export default function PortalLayout({
@@ -37,17 +20,48 @@ export default function PortalLayout({
 }) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [readIds, setReadIds] = useState([]);
+  const [serverNotifications, setServerNotifications] = useState([]);
+
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3500";
+
+  useEffect(() => {
+    if (user && user.id) {
+      fetch(`${API_URL}/notifications`, { credentials: "include" })
+        .then(res => res.json())
+        .then(data => {
+            if(Array.isArray(data)) {
+                setServerNotifications(data);
+                const reads = data.filter(n => n.is_read).map(n => n.id);
+                setReadIds(reads);
+            }
+        })
+        .catch(err => console.error("Failed to fetch notifications", err));
+    }
+  }, [user, API_URL]);
 
   const mainItems = navItems.filter((item) => !item.sectionEnd);
   const bottomItems = navItems.filter((item) => item.sectionEnd);
 
-  const unread = notifications.length - readIds.length;
+  const displayNotifications = (user && user.id && serverNotifications.length > 0) ? serverNotifications : notifications;
+  const unread = displayNotifications.length - readIds.length;
 
   const displayName =
     user?.display_name || user?.name || user?.username || "Portal User";
   const role = user?.role || "user";
 
-  const markAllRead = () => setReadIds(notifications.map((n) => n.id));
+  const markAllRead = async () => {
+    setReadIds(displayNotifications.map((n) => n.id));
+    if (user && user.id) {
+      try {
+        await fetch(`${API_URL}/notifications/mark-all-read`, {
+            method: 'PATCH',
+            credentials: "include"
+        });
+      } catch (err) {
+        console.error("Failed to mark all as read", err);
+      }
+    }
+  };
 
   const renderNavItems = (items) =>
     items.map((item) => {
@@ -141,7 +155,7 @@ export default function PortalLayout({
 
             {showNotifications && (
               <NotificationsDropdown
-                notifications={notifications}
+                notifications={displayNotifications}
                 readIds={readIds}
                 onMarkAllRead={markAllRead}
                 onClose={() => setShowNotifications(false)}
@@ -195,7 +209,7 @@ function NotificationsDropdown({ notifications, readIds, onMarkAllRead, onClose 
                   <div className="text-sm font-semibold text-stone-900">{n.title}</div>
                   <p className="text-xs text-stone-500 mt-0.5">{n.detail}</p>
                   <span className="text-[11px] font-medium text-stone-400 mt-1 inline-block">
-                    {n.time}
+                    {n.time ? (new Date(n.time).toString() !== 'Invalid Date' && typeof n.time === 'string' && n.time.includes('T') ? new Date(n.time).toLocaleString() : n.time) : "Just now"}
                   </span>
                 </div>
               </li>

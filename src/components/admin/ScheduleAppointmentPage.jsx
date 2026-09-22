@@ -107,15 +107,15 @@ export default function ScheduleAppointmentPage() {
     const s = (status || "scheduled").toLowerCase();
     switch (s) {
       case "completed":
-        return "bg-emerald-100 text-emerald-800 border-emerald-300";
+        return "bg-emerald-100 text-emerald-800 border-emerald-200";
       case "cancelled":
       case "canceled":
-        return "bg-rose-100 text-rose-800 border-rose-300";
+        return "bg-rose-100 text-rose-800 border-rose-200";
       case "pending":
-        return "bg-amber-100 text-amber-800 border-amber-300";
+        return "bg-amber-100 text-amber-800 border-amber-200";
       case "scheduled":
       default:
-        return "bg-sky-100 text-[#8B1E42] border-sky-300";
+        return "bg-blue-100 text-blue-800 border-blue-200";
     }
   };
 
@@ -391,6 +391,27 @@ const appointmentDatesSet = useMemo(() => {
     }
   };
 
+  const handleUpdateStatus = async (aptId, newStatus) => {
+    if (!window.confirm(`Are you sure you want to ${newStatus === 'scheduled' ? 'approve' : 'decline'} this appointment?`)) return;
+
+    try {
+      const res = await fetchWithCredentials(`${API_APPOINTMENTS_BASE}/${aptId}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: newStatus }),
+      });
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to update appointment status.");
+      }
+
+      setSuccessMessage(`Appointment successfully ${newStatus === 'scheduled' ? 'approved' : 'declined'}.`);
+      fetchExistingAppointments();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   return (
     <div className="space-y-8 max-w-6xl mx-auto p-2">
       {/* Page Header */}
@@ -660,15 +681,20 @@ const appointmentDatesSet = useMemo(() => {
         {/* Existing Appointments Sidebar (For Doctor / Admin Overview) */}
         {(user?.role === "admin" || user?.role === "doctor") && (
           <div className="bg-[#F8F3EC] border border-[#DCD0C0] p-6 rounded-2xl shadow-sm space-y-6 h-fit">
-            <div className="flex items-center justify-between border-b border-[#EBE3D8] pb-3">
-              <h3 className="text-lg font-bold text-stone-900">Appointments List</h3>
-              <button
-                onClick={fetchExistingAppointments}
-                className="p-1.5 text-stone-500 hover:text-stone-800 rounded-lg hover:bg-[#EBE3D8] transition"
-                title="Refresh"
-              >
-                <RefreshCw className="w-4 h-4" />
-              </button>
+            <div className="pb-3 border-b border-[#EBE3D8]">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-lg font-bold text-stone-900">Appointments List</h3>
+                <button
+                  onClick={fetchExistingAppointments}
+                  className="p-1.5 text-stone-500 hover:text-stone-800 rounded-lg hover:bg-[#EBE3D8] transition"
+                  title="Refresh"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </button>
+              </div>
+              <p className="text-xs text-stone-500 mt-0.5">
+                {processedAppointments.length} record{processedAppointments.length === 1 ? "" : "s"} (filtered)
+              </p>
             </div>
 
             {/* Custom Interactive Calendar */}
@@ -849,6 +875,24 @@ const appointmentDatesSet = useMemo(() => {
                         </p>
                       )}
                     </div>
+                    {user?.role === "admin" && apt.status === "pending" && (
+                      <div className="pt-2 flex items-center justify-end gap-2 border-t border-[#E3D8CC] mt-2">
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateStatus(apt.id, 'declined')}
+                          className="px-3 py-1 text-[11px] font-semibold text-rose-700 bg-rose-100 hover:bg-rose-200 rounded-lg transition"
+                        >
+                          Decline
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateStatus(apt.id, 'scheduled')}
+                          className="px-3 py-1 text-[11px] font-semibold text-white bg-[#8B1E42] hover:bg-[#731836] rounded-lg shadow-sm transition"
+                        >
+                          Approve
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

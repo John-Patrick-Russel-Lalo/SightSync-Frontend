@@ -17,6 +17,7 @@ import {
   LayoutDashboard,
   Plus,
   AlertTriangle,
+  AlertCircle,
   X,
   ShoppingCart,
 } from "lucide-react";
@@ -214,7 +215,7 @@ export default function AdminDashboard() {
       ) : (
         <>
           {activeTab === "users" && (
-            <div className="space-y-8">
+            <div className="space-y-8 max-w-6xl mx-auto p-2">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <h2 className="text-2xl font-bold text-stone-900">System Dashboard</h2>
@@ -252,11 +253,11 @@ export default function AdminDashboard() {
               </div>
 
               <section className="bg-[#F8F3EC] border border-[#DCD0C0] rounded-2xl shadow-sm overflow-hidden">
-                <div className="p-6 border-b border-[#EBE3D8] flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#FAF7F2]">
+                <div className="p-5 border-b border-[#EBE3D8] flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#FAF7F2]">
                   <div>
                     <h3 className="text-lg font-bold text-stone-900">User Directory</h3>
                     <p className="text-xs text-stone-500 mt-0.5">
-                      Manage accounts, role assignments, and account statuses.
+                      {filteredUsers.length} record{filteredUsers.length === 1 ? "" : "s"} loaded
                     </p>
                   </div>
                   <div className="flex flex-col sm:flex-row items-center gap-3">
@@ -294,7 +295,8 @@ export default function AdminDashboard() {
                     </div>
                   ) : error ? (
                     <div className="p-10 text-center bg-rose-50/50">
-                      <p className="font-semibold text-rose-800">Failed to load data</p>
+                      <AlertCircle className="w-6 h-6 mx-auto text-rose-600" />
+                      <p className="mt-2 font-semibold text-rose-800">Failed to load data</p>
                       <p className="text-xs text-stone-600 mt-1">{error}</p>
                       <button
                         onClick={fetchUsers}
@@ -377,8 +379,10 @@ export default function AdminDashboard() {
                           ))
                         ) : (
                           <tr>
-                            <td colSpan="4" className="px-6 py-10 text-center text-stone-500">
-                              No users found matching your criteria.
+                            <td colSpan="4" className="px-6 py-14 text-center text-stone-500">
+                              <Users className="w-8 h-8 mx-auto text-stone-300" />
+                              <p className="mt-3 text-sm font-medium">No records found.</p>
+                              <p className="text-xs text-stone-400 mt-1">Try a different filter or clear your search.</p>
                             </td>
                           </tr>
                         )}
@@ -470,7 +474,7 @@ function StatCard({ title, value, icon, trend }) {
         <span className="text-xs font-semibold uppercase tracking-wider text-stone-500">{title}</span>
         <div className="p-2.5 bg-[#F2EAE1] rounded-xl border border-[#E3D8CC]">{icon}</div>
       </div>
-      <div className="text-3xl font-extrabold text-stone-900">{value}</div>
+      <div className="text-2xl font-extrabold text-stone-900">{value}</div>
       <div className="text-xs text-stone-500 font-medium">{trend}</div>
     </div>
   );

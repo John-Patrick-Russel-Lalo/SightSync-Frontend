@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { User, X, Loader2, Edit3, AlertCircle, Search, Filter, Calendar, Clock } from "lucide-react";
+import { User, X, Loader2, Edit3, AlertCircle, Search, Calendar, Clock } from "lucide-react";
 
 const API_PATIENTS_URL = "http://localhost:3500/patients";
 const API_APPOINTMENTS_URL = "http://localhost:3500/appointments";
+
+const inputClass =
+  "w-full pl-4 pr-4 py-2.5 bg-[#F2EAE1] border border-[#DCD0C0] rounded-xl text-sm text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#8B1E42]/20 focus:border-[#8B1E42]";
 
 export default function PatientManagementPage({ users: initialUsers, fetchWithCredentials }) {
   const [usersList, setUsersList] = useState(initialUsers);
@@ -264,91 +267,96 @@ export default function PatientManagementPage({ users: initialUsers, fetchWithCr
   const getStatusBadgeStyle = (status) => {
     switch (status) {
       case "active":
-        return "text-[#10B981] bg-emerald-50 border-emerald-200";
+        return "text-emerald-800 bg-emerald-100/70 border-emerald-200";
       case "pending":
-        return "text-[#F59E0B] bg-amber-100 border-amber-300 font-semibold";
+        return "text-amber-800 bg-amber-100 border-amber-200 font-semibold";
       case "suspended":
-        return "text-[#EF4444] bg-rose-50 border-rose-200";
+        return "text-rose-800 bg-rose-100 border-rose-200";
       default:
-        return "text-stone-700 bg-stone-100 border-stone-300";
+        return "text-stone-600 bg-stone-200/70 border-stone-300";
     }
   };
 
   const getAppointmentStatusStyle = (status) => {
     switch ((status || "").toLowerCase()) {
       case "completed":
-        return "bg-emerald-100 text-emerald-800 border-emerald-300";
+        return "bg-emerald-100 text-emerald-800 border-emerald-200";
       case "scheduled":
       case "confirmed":
-        return "bg-blue-100 text-blue-800 border-blue-300";
+        return "bg-blue-100 text-blue-800 border-blue-200";
       case "cancelled":
-        return "bg-rose-100 text-rose-800 border-rose-300";
+        return "bg-rose-100 text-rose-800 border-rose-200";
       default:
         return "bg-stone-100 text-stone-700 border-stone-300";
     }
   };
 
   return (
-    <div className="space-y-6 font-sans">
+    <div className="space-y-8 max-w-6xl mx-auto p-2">
       <div>
         <h2 className="text-2xl font-bold text-stone-900">Patient Management</h2>
         <p className="text-sm text-stone-600">View and edit profiles or update status for registered patients.</p>
       </div>
 
       {tableError && (
-        <div className="p-3.5 bg-rose-100 border border-rose-300 rounded-xl text-rose-800 text-xs flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 text-rose-700 shrink-0" />
+        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl flex items-center gap-3 text-sm">
+          <AlertCircle className="w-5 h-5 shrink-0 text-rose-600" />
           <span>{tableError}</span>
         </div>
       )}
 
-      {/* Search and Filter Controls */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-[#F8F3EC] border border-[#DCD0C0] p-4 rounded-2xl shadow-sm">
-        <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
-          <input
-            type="text"
-            placeholder="Search by ID, name, phone, or email..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-8 py-2 bg-white border border-[#DCD0C0] rounded-xl text-xs text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-1 focus:ring-[#8B1E42]"
-          />
-          {searchTerm && (
-            <button
-              onClick={() => setSearchTerm("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
+      <section className="bg-[#F8F3EC] border border-[#DCD0C0] rounded-2xl shadow-sm overflow-hidden">
+        <div className="p-5 border-b border-[#EBE3D8] bg-[#FAF7F2]">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="text-lg font-bold text-stone-900">Patients</h3>
+              <p className="text-xs text-stone-500 mt-0.5">
+                {filteredPatients.length} record{filteredPatients.length === 1 ? "" : "s"} loaded
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <div className="relative w-full sm:w-72">
+                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
+                <input
+                  type="text"
+                  placeholder="Search by ID, name, phone, or email..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 pr-4 py-2 bg-[#F2EAE1] border border-[#DCD0C0] rounded-xl text-sm text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#8B1E42]/20 focus:border-[#8B1E42] w-full"
+                />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="bg-[#F2EAE1] border border-[#DCD0C0] rounded-xl px-3 py-2 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[#8B1E42]/20 focus:border-[#8B1E42] cursor-pointer font-medium"
+              >
+                <option value="all">All Statuses</option>
+                <option value="pending">Pending Profile</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="suspended">Suspended</option>
+              </select>
+            </div>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-          <Filter className="w-4 h-4 text-stone-500 shrink-0" />
-          <span className="text-xs font-semibold text-stone-600">Status:</span>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 bg-white border border-[#DCD0C0] rounded-xl text-xs text-stone-800 font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#8B1E42]"
-          >
-            <option value="all">All Statuses</option>
-            <option value="pending">Pending Profile</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-            <option value="suspended">Suspended</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="bg-[#F8F3EC] border border-[#DCD0C0] rounded-2xl p-6 shadow-sm overflow-x-auto">
+        <div className="overflow-x-auto">
         <table className="w-full text-left text-sm text-stone-700">
-          <thead className="text-xs uppercase text-stone-500 border-b border-[#EBE3D8]">
+          <thead className="bg-[#F2EAE1]/80 text-xs uppercase text-stone-500 tracking-wider border-b border-[#EBE3D8] font-semibold">
             <tr>
-              <th className="py-3">Patient ID</th>
-              <th className="py-3">Patient Name</th>
-              <th className="py-3">Phone Number</th>
-              <th className="py-3">Status</th>
-              <th className="py-3 text-right">Action</th>
+              <th className="px-6 py-3.5">Patient ID</th>
+              <th className="px-6 py-3.5">Patient Name</th>
+              <th className="px-6 py-3.5">Phone Number</th>
+              <th className="px-6 py-3.5">Status</th>
+              <th className="px-6 py-3.5 text-right">Action</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#EBE3D8]">
@@ -359,10 +367,10 @@ export default function PatientManagementPage({ users: initialUsers, fetchWithCr
                 const phoneNumber = profile?.phone_number || p.phone_number || "N/A";
 
                 return (
-                  <tr key={p.id}>
-                    <td className="py-3.5 font-mono text-xs text-stone-600">{p.id}</td>
-                    <td className="py-3.5 font-bold text-stone-900">{p.display_name || p.username}</td>
-                    <td className="py-3.5 text-stone-600">
+                  <tr key={p.id} className="hover:bg-[#F2EAE1]/50 transition-colors">
+                    <td className="px-6 py-4 font-mono text-xs text-stone-600">{p.id}</td>
+                    <td className="px-6 py-4 font-bold text-stone-900">{p.display_name || p.username}</td>
+                    <td className="px-6 py-4 text-stone-600">
                       {loadingProfiles && !profile ? (
                         <div className="flex items-center gap-1.5 text-xs text-stone-400">
                           <Loader2 className="w-3 h-3 animate-spin text-[#8B1E42]" />
@@ -372,13 +380,13 @@ export default function PatientManagementPage({ users: initialUsers, fetchWithCr
                         phoneNumber
                       )}
                     </td>
-                    <td className="py-3.5">
+                    <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <select
                           value={currentStatus}
                           disabled={updatingStatusId === p.id}
                           onChange={(e) => handleStatusChange(p.id, e.target.value)}
-                          className={`text-xs px-2.5 py-1 rounded-full font-medium border cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#8B1E42] ${getStatusBadgeStyle(
+                          className={`text-xs px-2.5 py-1 rounded-full font-medium border cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#8B1E42]/20 focus:border-[#8B1E42] ${getStatusBadgeStyle(
                             currentStatus
                           )}`}
                         >
@@ -392,10 +400,10 @@ export default function PatientManagementPage({ users: initialUsers, fetchWithCr
                         )}
                       </div>
                     </td>
-                    <td className="py-3.5 text-right">
+                    <td className="px-6 py-4 text-right">
                       <button
                         onClick={() => fetchPatientProfile(p.id)}
-                        className="text-[#8B1E42] font-semibold text-xs hover:underline bg-[#E2D6C7]/50 px-3 py-1.5 rounded-lg border border-[#DCD0C0] transition"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-[#8B1E42] bg-[#8B1E42]/10 hover:bg-[#8B1E42] hover:text-white transition"
                       >
                         {currentStatus === "pending" ? "Create Profile" : "View Profile"}
                       </button>
@@ -405,14 +413,17 @@ export default function PatientManagementPage({ users: initialUsers, fetchWithCr
               })
             ) : (
               <tr>
-                <td colSpan="5" className="py-8 text-center text-stone-500">
-                  No patient accounts match your search criteria.
+                <td colSpan="5" className="px-6 py-14 text-center text-stone-500">
+                  <User className="w-8 h-8 mx-auto text-stone-300" />
+                  <p className="mt-3 text-sm font-medium">No records found.</p>
+                  <p className="text-xs text-stone-400 mt-1">Try a different filter or clear your search.</p>
                 </td>
               </tr>
             )}
           </tbody>
         </table>
-      </div>
+        </div>
+      </section>
 
       {selectedPatientId && (
         <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -436,8 +447,8 @@ export default function PatientManagementPage({ users: initialUsers, fetchWithCr
 
             <div className="p-6 overflow-y-auto space-y-6">
               {modalError && (
-                <div className="p-3.5 bg-rose-100/80 border border-rose-300 rounded-xl text-rose-800 text-xs flex items-start gap-2.5">
-                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-700" />
+                <div className="p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl flex items-start gap-3 text-sm">
+                  <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-rose-600" />
                   <div>
                     <span className="font-bold">Error: </span>
                     {modalError}
@@ -455,75 +466,75 @@ export default function PatientManagementPage({ users: initialUsers, fetchWithCr
                   <form id="edit-patient-form" onSubmit={handleUpdatePatientProfile} className="space-y-4 text-sm">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-semibold text-stone-600 mb-1">Phone Number</label>
+                        <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-2">Phone Number</label>
                         <input
                           type="text"
                           value={editFormData.phoneNumber || ""}
                           onChange={(e) => setEditFormData({ ...editFormData, phoneNumber: e.target.value })}
-                          className="w-full p-2 bg-[#F2EAE1] border border-[#DCD0C0] rounded-xl text-xs focus:ring-1 focus:ring-[#8B1E42] focus:outline-none"
+                          className={inputClass}
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-stone-600 mb-1">Blood Type</label>
+                        <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-2">Blood Type</label>
                         <input
                           type="text"
                           value={editFormData.bloodType || ""}
                           onChange={(e) => setEditFormData({ ...editFormData, bloodType: e.target.value })}
-                          className="w-full p-2 bg-[#F2EAE1] border border-[#DCD0C0] rounded-xl text-xs focus:ring-1 focus:ring-[#8B1E42] focus:outline-none"
+                          className={inputClass}
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-stone-600 mb-1">Date of Birth</label>
+                        <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-2">Date of Birth</label>
                         <input
                           type="date"
                           value={editFormData.dateOfBirth || ""}
                           onChange={(e) => setEditFormData({ ...editFormData, dateOfBirth: e.target.value })}
-                          className="w-full p-2 bg-[#F2EAE1] border border-[#DCD0C0] rounded-xl text-xs focus:ring-1 focus:ring-[#8B1E42] focus:outline-none"
+                          className={inputClass}
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-stone-600 mb-1">Gender</label>
+                        <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-2">Gender</label>
                         <input
                           type="text"
                           value={editFormData.gender || ""}
                           onChange={(e) => setEditFormData({ ...editFormData, gender: e.target.value })}
-                          className="w-full p-2 bg-[#F2EAE1] border border-[#DCD0C0] rounded-xl text-xs focus:ring-1 focus:ring-[#8B1E42] focus:outline-none"
+                          className={inputClass}
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-stone-600 mb-1">Emergency Contact Name</label>
+                        <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-2">Emergency Contact Name</label>
                         <input
                           type="text"
                           value={editFormData.emergencyContactName || ""}
                           onChange={(e) => setEditFormData({ ...editFormData, emergencyContactName: e.target.value })}
-                          className="w-full p-2 bg-[#F2EAE1] border border-[#DCD0C0] rounded-xl text-xs focus:ring-1 focus:ring-[#8B1E42] focus:outline-none"
+                          className={inputClass}
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-stone-600 mb-1">Emergency Contact Phone</label>
+                        <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-2">Emergency Contact Phone</label>
                         <input
                           type="text"
                           value={editFormData.emergencyContactPhone || ""}
                           onChange={(e) => setEditFormData({ ...editFormData, emergencyContactPhone: e.target.value })}
-                          className="w-full p-2 bg-[#F2EAE1] border border-[#DCD0C0] rounded-xl text-xs focus:ring-1 focus:ring-[#8B1E42] focus:outline-none"
+                          className={inputClass}
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-stone-600 mb-1">Insurance Provider</label>
+                        <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-2">Insurance Provider</label>
                         <input
                           type="text"
                           value={editFormData.insuranceProvider || ""}
                           onChange={(e) => setEditFormData({ ...editFormData, insuranceProvider: e.target.value })}
-                          className="w-full p-2 bg-[#F2EAE1] border border-[#DCD0C0] rounded-xl text-xs focus:ring-1 focus:ring-[#8B1E42] focus:outline-none"
+                          className={inputClass}
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-stone-600 mb-1">Insurance Policy Number</label>
+                        <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-2">Insurance Policy Number</label>
                         <input
                           type="text"
                           value={editFormData.insurancePolicyNumber || ""}
                           onChange={(e) => setEditFormData({ ...editFormData, insurancePolicyNumber: e.target.value })}
-                          className="w-full p-2 bg-[#F2EAE1] border border-[#DCD0C0] rounded-xl text-xs focus:ring-1 focus:ring-[#8B1E42] focus:outline-none"
+                          className={inputClass}
                         />
                       </div>
                     </div>
@@ -649,7 +660,7 @@ export default function PatientManagementPage({ users: initialUsers, fetchWithCr
                         setIsEditing(false);
                         setModalError(null);
                       }}
-                      className="px-4 py-2 bg-stone-200 text-stone-700 rounded-xl text-xs font-semibold hover:bg-stone-300 transition"
+                      className="px-4 py-2 rounded-xl text-sm font-semibold text-stone-600 hover:bg-[#E2D6C7] transition"
                     >
                       Cancel
                     </button>
@@ -657,7 +668,7 @@ export default function PatientManagementPage({ users: initialUsers, fetchWithCr
                       type="submit"
                       form="edit-patient-form"
                       disabled={updating}
-                      className="px-4 py-2 bg-[#8B1E42] text-white rounded-xl text-xs font-semibold hover:bg-[#731836] flex items-center gap-2 transition"
+                      className="px-4 py-2 bg-[#8B1E42] text-white rounded-xl text-sm font-semibold hover:bg-[#731836] flex items-center gap-2 transition shadow-sm"
                     >
                       {updating && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                       Save Profile
@@ -669,7 +680,7 @@ export default function PatientManagementPage({ users: initialUsers, fetchWithCr
                       setIsEditing(true);
                       setModalError(null);
                     }}
-                    className="flex items-center gap-1.5 bg-[#8B1E42] text-white px-4 py-2 rounded-xl text-xs font-semibold hover:bg-[#731836] transition"
+                    className="flex items-center gap-1.5 bg-[#8B1E42] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#731836] transition shadow-sm"
                   >
                     <Edit3 className="w-3.5 h-3.5" /> Edit Profile
                   </button>

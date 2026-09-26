@@ -106,27 +106,27 @@ export default function PatientProfileForm() {
 
   // Reusable Tailwind classes for high-contrast inputs
   const inputStyles =
-    "w-full px-3.5 py-2.5 text-sm text-slate-900 bg-white border border-slate-300 rounded-lg shadow-sm placeholder:text-slate-400 focus:ring-2 focus:ring-blue-600 focus:border-blue-600 focus:outline-none transition-colors disabled:bg-slate-100 disabled:text-slate-800 disabled:border-slate-200 disabled:cursor-not-allowed disabled:font-medium";
+    "w-full px-3.5 py-2.5 text-sm text-stone-900 bg-[#F8F3EC] border border-[#DCD0C0] rounded-lg shadow-sm placeholder:text-stone-400 focus:ring-2 focus:ring-[#8B1E42] focus:border-[#8B1E42] focus:outline-none transition-colors disabled:bg-[#E3D8CC] disabled:text-stone-600 disabled:border-[#DCD0C0] disabled:cursor-not-allowed disabled:font-medium";
 
-  const labelStyles = "block text-xs font-semibold text-slate-800 mb-1.5";
+  const labelStyles = "block text-xs font-semibold text-stone-800 mb-1.5";
 
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[350px]">
-        <div className="animate-spin rounded-full h-9 w-9 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-9 w-9 border-b-2 border-[#8B1E42]"></div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-3xl mx-auto my-8 bg-white rounded-xl shadow-md border border-slate-200 p-6 md:p-8">
+    <div className="max-w-3xl mx-auto my-8 bg-[#F8F3EC] rounded-xl shadow-md border border-[#DCD0C0] p-6 md:p-8">
       {/* Header */}
-      <div className="border-b border-slate-200 pb-5 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className="border-b border-[#DCD0C0] pb-5 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">
+          <h2 className="text-2xl font-bold text-stone-900">
             {isLocked ? "Patient Medical Profile" : "Complete Patient Profile"}
           </h2>
-          <p className="text-xs font-medium text-slate-600 mt-1">
+          <p className="text-xs font-medium text-stone-600 mt-1">
             {isLocked
               ? "Your 1-time profile edit has been used. Contact support or an admin for edits."
               : "Notice: You are allowed to edit and save this medical profile ONCE."}
@@ -172,8 +172,8 @@ export default function PatientProfileForm() {
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Section 1: Basic & Contact Information */}
         <div className="space-y-4">
-          <div className="border-b border-slate-100 pb-2">
-            <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+          <div className="border-b border-[#E3D8CC] pb-2">
+            <h3 className="text-xs font-bold text-stone-900 uppercase tracking-wider">
               Personal & Contact Information
             </h3>
           </div>
@@ -226,8 +226,8 @@ export default function PatientProfileForm() {
 
         {/* Section 2: Medical & Emergency Contact */}
         <div className="space-y-4">
-          <div className="border-b border-slate-100 pb-2">
-            <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+          <div className="border-b border-[#E3D8CC] pb-2">
+            <h3 className="text-xs font-bold text-stone-900 uppercase tracking-wider">
               Medical & Emergency
             </h3>
           </div>
@@ -283,8 +283,8 @@ export default function PatientProfileForm() {
 
         {/* Section 3: Insurance Details */}
         <div className="space-y-4">
-          <div className="border-b border-slate-100 pb-2">
-            <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+          <div className="border-b border-[#E3D8CC] pb-2">
+            <h3 className="text-xs font-bold text-stone-900 uppercase tracking-wider">
               Insurance Details
             </h3>
           </div>
@@ -319,11 +319,11 @@ export default function PatientProfileForm() {
 
         {/* Action Button */}
         {!isLocked && (
-          <div className="pt-4 border-t border-slate-100">
+          <div className="pt-4 border-t border-[#E3D8CC]">
             <button
               type="submit"
               disabled={submitting}
-              className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-sm rounded-lg shadow transition duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3 px-4 bg-[#8B1E42] hover:bg-[#731836] active:bg-[#5a1329] text-white font-semibold text-sm rounded-lg shadow transition duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? "Saving Profile..." : "Save Profile Details (1-Time Edit)"}
             </button>

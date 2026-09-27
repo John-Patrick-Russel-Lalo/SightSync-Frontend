@@ -1043,9 +1043,11 @@ import {
   Shield,
   Settings,
   LayoutDashboard,
+  Archive,
 } from "lucide-react";
 import PortalLayout from "./PortalLayout";
 import SettingsPage from "./SettingsPage";
+import AppointmentArchive from "./AppointmentArchive";
 
 export default function DoctorDashboard() {
   const { user, logout } = useAuth();
@@ -1242,6 +1244,7 @@ export default function DoctorDashboard() {
 
   const navItems = [
     { id: "appointments", label: "Appointments", icon: LayoutDashboard },
+    { id: "archive", label: "Appointment Archive", icon: Archive },
     { id: "settings", label: "Settings", icon: Settings, sectionEnd: true },
   ];
 
@@ -1259,6 +1262,8 @@ export default function DoctorDashboard() {
     >
       {activeTab === "settings" ? (
         <SettingsPage />
+      ) : activeTab === "archive" ? (
+        <AppointmentArchive scope="all" />
       ) : (
         <div className="flex flex-col lg:flex-row gap-8 items-start">
           

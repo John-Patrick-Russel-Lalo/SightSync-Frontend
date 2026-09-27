@@ -10,6 +10,7 @@ import {
   FileText,
 } from "lucide-react";
 import MonthCalendar from "./MonthCalendar";
+import BookAppointment from "./BookAppointment";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3500";
 
@@ -61,22 +62,19 @@ async function fetchMyAppointments() {
   return (data.appointments || []).map(formatAppointment);
 }
 
-async function fetchDoctorNames() {
-  const response = await fetch(`${API_URL}/users`, {
+async function fetchAvailableDoctors() {
+  const response = await fetch(`${API_URL}/doctors/available`, {
     method: "GET",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
   });
 
-  if (!response.ok) return {};
+  if (!response.ok) {
+    throw new Error("Failed to load the list of available doctors.");
+  }
 
   const data = await response.json();
-  const doctors = Array.isArray(data) ? data.filter((u) => u.role === "doctor") : [];
-  const map = {};
-  doctors.forEach((doc) => {
-    map[doc.id] = doc.display_name || doc.username || `Doctor #${doc.id}`;
-  });
-  return map;
+  return data.data || [];
 }
 
 function getStatusStyle(status) {
@@ -141,9 +139,14 @@ export default function PatientAppointments() {
         if (!cancelled) setLoading(false);
       });
 
-    fetchDoctorNames()
-      .then((map) => {
-        if (!cancelled) setDoctorNames(map);
+    fetchAvailableDoctors()
+      .then((list) => {
+        if (cancelled) return;
+        const map = {};
+        list.forEach((doc) => {
+          map[doc.user_id] = doc.display_name || doc.username || `Doctor #${doc.user_id}`;
+        });
+        setDoctorNames(map);
       })
       .catch((err) => {
         console.error("Failed to fetch doctor names:", err);
@@ -191,7 +194,11 @@ export default function PatientAppointments() {
   ];
 
   return (
-    <div className="flex flex-col lg:flex-row gap-8 items-start">
+    <div className="flex flex-col gap-8">
+      {/* Request Appointment Section */}
+     
+
+      <div className="flex flex-col lg:flex-row gap-8 items-start">
       {/* Appointments Section */}
       <section className="w-full lg:flex-1 bg-[#F8F3EC] border border-[#DCCFBF] rounded-3xl overflow-hidden shadow-sm">
         {/* Header Controls */}
@@ -336,6 +343,7 @@ export default function PatientAppointments() {
           selected={selectedDate}
           onSelectDate={setSelectedDate}
         />
+      </div>
       </div>
     </div>
   );

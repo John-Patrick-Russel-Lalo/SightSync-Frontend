@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   Calendar as CalendarIcon,
   Clock,
@@ -43,6 +43,7 @@ export default function ScheduleAppointmentPage() {
   const [patientSearchTerm, setPatientSearchTerm] = useState("");
   const [patientProviderFilter, setPatientProviderFilter] = useState("all");
   const [isPatientDropdownOpen, setIsPatientDropdownOpen] = useState(false);
+  const patientDropdownRef = useRef(null);
 
   // Appointment List Search, Filter & Calendar States
   const [apptSearchTerm, setApptSearchTerm] = useState("");
@@ -63,6 +64,20 @@ export default function ScheduleAppointmentPage() {
       setSelectedPatient(user);
     }
   }, [user]);
+
+  // Close patient dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        patientDropdownRef.current &&
+        !patientDropdownRef.current.contains(event.target)
+      ) {
+        setIsPatientDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Utility fetch function including credentials
   const fetchWithCredentials = async (url, options = {}) => {
@@ -527,7 +542,7 @@ const appointmentDatesSet = useMemo(() => {
                   </button>
                 </div>
               ) : (
-                <div className="relative space-y-2">
+                <div className="relative space-y-2" ref={patientDropdownRef}>
                   <div className="flex items-center gap-2">
                     <div className="relative flex-1">
                       <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />

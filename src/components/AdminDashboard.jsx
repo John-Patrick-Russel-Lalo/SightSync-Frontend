@@ -20,7 +20,11 @@ import {
   AlertCircle,
   X,
   ShoppingCart,
+  Archive,
+  ChartLine,
 } from "lucide-react";
+import Overview from "./admin/Overview";
+import Analytics from "./admin/Analytics";
 import PatientManagementPage from "./admin/PatientManagementPage";
 import ScheduleAppointmentPage from "./admin/ScheduleAppointmentPage";
 import DoctorManagementPage from "./admin/DoctorManagementPage";
@@ -28,6 +32,7 @@ import InventoryManager from "./admin/InventoryManager";
 import PosManager from "./admin/PosManager";
 import PortalLayout from "./PortalLayout";
 import SettingsPage from "./SettingsPage";
+import AppointmentArchive from "./AppointmentArchive";
 
 // Express server mount point
 const API_USERS_URL = "http://localhost:3500/users";
@@ -51,8 +56,8 @@ export default function AdminDashboard() {
     newRole: "",
   });
 
-  // Navigation tab state: 'users' | 'patients' | 'inventory' | 'pos' | 'schedules' | 'doctor-schedules'
-  const [activeTab, setActiveTab] = useState("users");
+  // Navigation tab state: 'overview' | 'users' | 'patients' | 'doctors' | 'inventory' | 'pos' | 'schedules' | 'doctor-schedules' | 'archive'
+  const [activeTab, setActiveTab] = useState("overview");
 
   // Unified fetch utility that automatically includes cookie credentials
   const fetchWithCredentials = async (url, options = {}) => {
@@ -189,13 +194,16 @@ export default function AdminDashboard() {
   });
 
   const navItems = [
-    { id: "users", label: "User Directory", icon: LayoutDashboard },
+    { id: "overview", label: "Overview", icon: LayoutDashboard },
+    { id: "analytics", label: "Analytics", icon: ChartLine },
+    { id: "users", label: "User Directory", icon: Users },
     { id: "patients", label: "Patient Management", icon: User },
     { id: "doctors", label: "Doctor Management", icon: Stethoscope },
     { id: "inventory", label: "Inventory Management", icon: Package },
     { id: "pos", label: "Point of Sale", icon: ShoppingCart },
     { id: "schedules", label: "Schedule Management", icon: Calendar },
     { id: "doctor-schedules", label: "Doctor Schedules", icon: Clock },
+    { id: "archive", label: "Appointment Archive", icon: Archive },
     { id: "settings", label: "Settings", icon: Settings, sectionEnd: true },
   ];
 
@@ -214,6 +222,9 @@ export default function AdminDashboard() {
         <SettingsPage />
       ) : (
         <>
+          {activeTab === "overview" && <Overview onNavigate={setActiveTab} />}
+          {activeTab === "analytics" && <Analytics onNavigate={setActiveTab} />}
+
           {activeTab === "users" && (
             <div className="space-y-8 max-w-6xl mx-auto p-2">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -360,20 +371,7 @@ export default function AdminDashboard() {
                               </td>
 
                               <td className="px-6 py-4">
-                                <span
-                                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${
-                                    u.status === "Active"
-                                      ? "bg-emerald-100/70 text-emerald-800 border border-emerald-200"
-                                      : "bg-stone-200/70 text-stone-600 border border-stone-300"
-                                  }`}
-                                >
-                                  <span
-                                    className={`w-1.5 h-1.5 rounded-full ${
-                                      u.status === "Active" ? "bg-emerald-600" : "bg-stone-500"
-                                    }`}
-                                  />
-                                  {u.status || "Active"}
-                                </span>
+                                <StatusBadge status={u.status} />
                               </td>
                             </tr>
                           ))
@@ -407,6 +405,7 @@ export default function AdminDashboard() {
           {activeTab === "inventory" && <InventoryManager />}
           {activeTab === "pos" && <PosManager />}
           {activeTab === "doctor-schedules" && <DoctorSchedulePage users={users} />}
+          {activeTab === "archive" && <AppointmentArchive scope="all" users={users} />}
         </>
       )}
 
@@ -464,6 +463,44 @@ export default function AdminDashboard() {
         </div>
       )}
     </PortalLayout>
+  );
+}
+
+const STATUS_BADGE_STYLES = {
+  active: {
+    badge: "bg-emerald-100/70 text-emerald-800 border-emerald-200",
+    dot: "bg-emerald-600",
+  },
+  pending: {
+    badge: "bg-amber-100 text-amber-800 border-amber-200 font-semibold",
+    dot: "bg-amber-600",
+  },
+  suspended: {
+    badge: "bg-rose-100 text-rose-800 border-rose-200",
+    dot: "bg-rose-600",
+  },
+  inactive: {
+    badge: "bg-stone-200/70 text-stone-600 border-stone-300",
+    dot: "bg-stone-500",
+  },
+};
+
+const DEFAULT_STATUS_STYLE = {
+  badge: "bg-stone-200/70 text-stone-600 border-stone-300",
+  dot: "bg-stone-500",
+};
+
+function StatusBadge({ status }) {
+  const currentStatus = (status || "active").toLowerCase();
+  const style = STATUS_BADGE_STYLES[currentStatus] || DEFAULT_STATUS_STYLE;
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium capitalize border ${style.badge}`}
+    >
+      <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`} />
+      {currentStatus}
+    </span>
   );
 }
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Bell, Settings, LogOut, X } from "lucide-react";
+import LogoutConfirmModal from "./LogoutConfirmModal";
 
 const DEFAULT_NOTIFICATIONS = [
   
@@ -19,6 +20,7 @@ export default function PortalLayout({
   children,
 }) {
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [readIds, setReadIds] = useState([]);
   const [serverNotifications, setServerNotifications] = useState([]);
 
@@ -116,7 +118,7 @@ export default function PortalLayout({
             </div>
           </div>
           <button
-            onClick={onLogout}
+            onClick={() => setShowLogoutConfirm(true)}
             className="p-2 text-rose-700 hover:text-rose-800 hover:bg-rose-100/60 rounded-xl transition shrink-0"
             title="Logout"
           >
@@ -166,6 +168,17 @@ export default function PortalLayout({
 
         <main className={`flex-1 p-8 ${maxWidth} w-full mx-auto space-y-8`}>{children}</main>
       </div>
+
+      {showLogoutConfirm && (
+        <LogoutConfirmModal
+          user={user}
+          onClose={() => setShowLogoutConfirm(false)}
+          onConfirm={async () => {
+            setShowLogoutConfirm(false);
+            await onLogout?.();
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -1,11 +1,13 @@
-import React from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { ShieldAlert, ArrowLeft, LayoutDashboard, LogOut } from "lucide-react";
+import LogoutConfirmModal from "./LogoutConfirmModal";
 
 export default function Unauthorized() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center p-6">
@@ -54,7 +56,7 @@ export default function Unauthorized() {
           </div>
 
           <button
-            onClick={logout}
+            onClick={() => setShowLogoutConfirm(true)}
             className="w-full flex items-center justify-center gap-2 px-4 py-2 text-xs text-slate-400 hover:text-rose-400 transition"
           >
             <LogOut className="w-3.5 h-3.5" />
@@ -62,6 +64,17 @@ export default function Unauthorized() {
           </button>
         </div>
       </div>
+
+      {showLogoutConfirm && (
+        <LogoutConfirmModal
+          user={user}
+          onClose={() => setShowLogoutConfirm(false)}
+          onConfirm={async () => {
+            setShowLogoutConfirm(false);
+            await logout();
+          }}
+        />
+      )}
     </div>
   );
 }

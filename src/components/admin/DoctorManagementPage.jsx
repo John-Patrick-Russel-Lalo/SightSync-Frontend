@@ -826,8 +826,8 @@ function DoctorScheduleTab({ userId, API_DOCTORS_URL }) {
 export default function DoctorManagementPage() {
   const { user } = useAuth();
 
-  const API_DOCTORS_URL = `${import.meta.env.VITE_API_URL}/doctors`;
-  const API_USERS_URL = `${import.meta.env.VITE_API_URL}/users`;
+  const API_DOCTORS_URL = `${import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL}/doctors`;
+  const API_USERS_URL = `${import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL}/users`;
 
   const [doctors, setDoctors] = useState([]);
   const [candidateUsers, setCandidateUsers] = useState([]);

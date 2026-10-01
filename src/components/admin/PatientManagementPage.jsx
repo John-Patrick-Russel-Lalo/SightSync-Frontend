@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { User, X, Loader2, Edit3, AlertCircle, Search, Calendar, Clock } from "lucide-react";
 
-const API_PATIENTS_URL = "http://localhost:3500/patients";
-const API_APPOINTMENTS_URL = "http://localhost:3500/appointments";
+const API_PATIENTS_URL = `${import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500"}/patients`;
+const API_APPOINTMENTS_URL = `${import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500"}/appointments`;
 
 const inputClass =
   "w-full pl-4 pr-4 py-2.5 bg-[#F2EAE1] border border-[#DCD0C0] rounded-xl text-sm text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#8B1E42]/20 focus:border-[#8B1E42]";

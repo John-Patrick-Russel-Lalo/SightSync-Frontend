@@ -10,7 +10,7 @@ import {
   FileText,
 } from "lucide-react";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3500";
+const API_URL = import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500";
 
 function formatDateString(date) {
   const year = date.getFullYear();

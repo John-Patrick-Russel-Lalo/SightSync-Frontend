@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 
-const API_BASE = `${import.meta.env.VITE_API_URL}`;
+const API_BASE = `${import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500"}`;
 
 export default function PatientProfileForm() {
   const [formData, setFormData] = useState({

@@ -35,8 +35,8 @@ import SettingsPage from "./SettingsPage";
 import AppointmentArchive from "./AppointmentArchive";
 
 // Express server mount point
-const API_USERS_URL = "http://localhost:3500/users";
-const API_PATIENTS_URL = "http://localhost:3500/patients";
+const API_USERS_URL = `${import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500"}/users`;
+const API_PATIENTS_URL = `${import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500"}/patients`;
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth();

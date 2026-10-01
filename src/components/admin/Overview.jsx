@@ -18,7 +18,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3500";
+const API_URL = import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500";
 
 const RANGE_OPTIONS = [
   { id: 7, label: "Last 7 Days" },
@@ -35,9 +35,13 @@ const formatCurrency = (n) =>
 const formatNumber = (n) => Number(n || 0).toLocaleString();
 
 const toLocalISO = (d) => {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
+  if (!d) return "";
+  const dateObj = d instanceof Date ? d : new Date(d);
+  if (isNaN(dateObj.getTime())) return "";
+
+  const y = dateObj.getFullYear();
+  const m = String(dateObj.getMonth() + 1).padStart(2, "0");
+  const day = String(dateObj.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
 };
 

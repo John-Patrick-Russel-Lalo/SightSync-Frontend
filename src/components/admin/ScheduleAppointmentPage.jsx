@@ -18,8 +18,8 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext"; // Adjust path if necessary
 
-const API_APPOINTMENTS_BASE = "http://localhost:3500/appointments";
-const API_USERS_URL = "http://localhost:3500/users";
+const API_APPOINTMENTS_BASE = `${import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500"}/appointments`;
+const API_USERS_URL = `${import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500"}/users`;
 
 export default function ScheduleAppointmentPage() {
   const { user } = useAuth(); // Logged in user context

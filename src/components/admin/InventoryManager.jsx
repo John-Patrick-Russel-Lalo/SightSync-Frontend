@@ -18,7 +18,7 @@ import {
   CircleDollarSign,
 } from "lucide-react";
 
-const API_BASE_URL = "http://localhost:3500/inventory";
+const API_BASE_URL = `${import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500"}/inventory`;
 
 const TAB_DEFS = [
   { id: "inventory", label: "All Inventory", icon: Package },

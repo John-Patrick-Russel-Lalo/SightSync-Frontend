@@ -1049,6 +1049,8 @@ import PortalLayout from "./PortalLayout";
 import SettingsPage from "./SettingsPage";
 import AppointmentArchive from "./AppointmentArchive";
 
+const API_URL = import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500";
+
 export default function DoctorDashboard() {
   const { user, logout } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
@@ -1091,7 +1093,7 @@ export default function DoctorDashboard() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`http://localhost:3500/appointments/${doctorId}`, {
+      const response = await fetch(`${API_URL}/appointments/${doctorId}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -1157,7 +1159,7 @@ export default function DoctorDashboard() {
       setLoadingProfile(true);
 
       // Adjust endpoint base URL path if needed (e.g., http://localhost:3500/patients/ or /users/)
-      const response = await fetch(`http://localhost:3500/patients/${app.patientId}`, {
+      const response = await fetch(`${API_URL}/patients/${app.patientId}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -1214,7 +1216,7 @@ export default function DoctorDashboard() {
     try {
       setIsUpdatingStatus(true);
 
-      const response = await fetch(`http://localhost:3500/appointments/${appointmentId}`, {
+      const response = await fetch(`${API_URL}/appointments/${appointmentId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

@@ -194,17 +194,17 @@ export default function PatientAppointments() {
   ];
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6 sm:gap-8">
       {/* Request Appointment Section */}
      
 
-      <div className="flex flex-col lg:flex-row gap-8 items-start">
+      <div className="flex flex-col lg:flex-row gap-6 sm:gap-8 items-start">
       {/* Appointments Section */}
       <section className="w-full lg:flex-1 bg-[#F8F3EC] border border-[#DCCFBF] rounded-3xl overflow-hidden shadow-sm">
         {/* Header Controls */}
-        <div className="p-7 border-b border-[#DCCFBF] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-xl font-bold text-[#3D2E28]">
+        <div className="p-4 sm:p-6 lg:p-7 border-b border-[#DCCFBF] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="min-w-0">
+            <h2 className="text-lg sm:text-xl font-bold text-[#3D2E28]">
               My Appointments for{" "}
               {selectedDate.toLocaleDateString("en-US", {
                 month: "short",
@@ -219,29 +219,29 @@ export default function PatientAppointments() {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-2 gap-4 p-7 pb-0">
-          <div className="bg-[#C08A3E]/10 border border-[#C08A3E]/25 rounded-2xl p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-xs uppercase font-bold tracking-wider text-[#C08A3E]">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 p-4 sm:p-6 lg:p-7 lg:pb-0">
+          <div className="bg-[#C08A3E]/10 border border-[#C08A3E]/25 rounded-2xl p-3 sm:p-4">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <div className="text-[10px] sm:text-xs uppercase font-bold tracking-wider text-[#C08A3E] truncate">
                   Pending
                 </div>
-                <div className="text-3xl font-bold text-[#3D2E28] mt-1">{pendingCount}</div>
+                <div className="text-2xl sm:text-3xl font-bold text-[#3D2E28] mt-1">{pendingCount}</div>
               </div>
-              <div className="bg-[#C08A3E]/15 text-[#C08A3E] p-2.5 rounded-xl">
+              <div className="bg-[#C08A3E]/15 text-[#C08A3E] p-2 sm:p-2.5 rounded-xl shrink-0">
                 <Hourglass className="w-5 h-5" />
               </div>
             </div>
           </div>
-          <div className="bg-[#52795A]/10 border border-[#52795A]/25 rounded-2xl p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-xs uppercase font-bold tracking-wider text-[#52795A]">
+          <div className="bg-[#52795A]/10 border border-[#52795A]/25 rounded-2xl p-3 sm:p-4">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <div className="text-[10px] sm:text-xs uppercase font-bold tracking-wider text-[#52795A] truncate">
                   Approved
                 </div>
-                <div className="text-3xl font-bold text-[#3D2E28] mt-1">{approvedCount}</div>
+                <div className="text-2xl sm:text-3xl font-bold text-[#3D2E28] mt-1">{approvedCount}</div>
               </div>
-              <div className="bg-[#52795A]/15 text-[#52795A] p-2.5 rounded-xl">
+              <div className="bg-[#52795A]/15 text-[#52795A] p-2 sm:p-2.5 rounded-xl shrink-0">
                 <Check className="w-5 h-5" />
               </div>
             </div>
@@ -249,7 +249,7 @@ export default function PatientAppointments() {
         </div>
 
         {/* Filter Tabs */}
-        <div className="p-7 pb-0 flex flex-wrap items-center gap-2">
+        <div className="p-4 sm:p-6 lg:p-7 lg:pb-0 flex flex-wrap items-center gap-2">
           {filters.map((f) => (
             <button
               key={f.id}
@@ -266,16 +266,16 @@ export default function PatientAppointments() {
         </div>
 
         {/* Appointments list */}
-        <div className="p-7">
+        <div className="p-4 sm:p-6 lg:p-7">
           {loading ? (
-            <div className="flex items-center justify-center p-12 text-[#8B7562] gap-2">
-              <Loader2 className="w-5 h-5 animate-spin" />
-              <span>Loading appointments...</span>
+            <div className="flex items-center justify-center p-8 sm:p-12 text-[#8B7562] gap-2 text-center">
+              <Loader2 className="w-5 h-5 animate-spin shrink-0" />
+              <span className="text-sm">Loading appointments...</span>
             </div>
           ) : error ? (
-            <div className="flex items-center justify-center p-12 text-[#8B1E42] gap-2">
-              <AlertCircle className="w-5 h-5" />
-              <span>{error}</span>
+            <div className="flex items-center justify-center p-8 sm:p-12 text-[#8B1E42] gap-2 text-center">
+              <AlertCircle className="w-5 h-5 shrink-0" />
+              <span className="text-sm">{error}</span>
             </div>
           ) : filteredAppointments.length > 0 ? (
             <div className="space-y-3">
@@ -284,15 +284,15 @@ export default function PatientAppointments() {
                 return (
                   <div
                     key={app.id}
-                    className="bg-[#EDE3D8]/60 border border-[#DCCFBF] rounded-2xl p-4 flex items-start justify-between gap-4"
+                    className="bg-[#EDE3D8]/60 border border-[#DCCFBF] rounded-2xl p-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4"
                   >
-                    <div className="space-y-1.5 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-[#3D2E28]">Appointment #{app.id}</span>
+                    <div className="space-y-1.5 min-w-0 w-full">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-bold text-[#3D2E28] text-sm sm:text-base">Appointment #{app.id}</span>
                         <span
                           className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold capitalize ${style.badge}`}
                         >
-                          <span className={`w-2 h-2 rounded-full ${style.dot}`} />
+                          <span className={`w-2 h-2 rounded-full shrink-0 ${style.dot}`} />
                           {style.label}
                         </span>
                       </div>
@@ -329,7 +329,7 @@ export default function PatientAppointments() {
               })}
             </div>
           ) : (
-            <div className="flex items-center justify-center p-12 text-[#8B7562]">
+            <div className="flex items-center justify-center p-8 sm:p-12 text-[#8B7562] text-center text-sm">
               No appointments found for this date.
             </div>
           )}
@@ -337,7 +337,7 @@ export default function PatientAppointments() {
       </section>
 
       {/* Calendar Box Section */}
-      <div className="w-full lg:w-auto flex justify-start">
+      <div className="w-full lg:w-auto flex justify-start order-first lg:order-last">
         <MonthCalendar
           scheduledDays={scheduledDays}
           selected={selectedDate}

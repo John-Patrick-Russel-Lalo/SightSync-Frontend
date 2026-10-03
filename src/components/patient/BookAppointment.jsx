@@ -146,16 +146,16 @@ export default function BookAppointment() {
 
   return (
     <section className="w-full bg-[#F8F3EC] border border-[#DCCFBF] rounded-3xl overflow-hidden shadow-sm">
-      <div className="p-7 border-b border-[#DCCFBF] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-bold text-[#3D2E28]">Request Appointment</h2>
+      <div className="p-4 sm:p-6 lg:p-7 border-b border-[#DCCFBF] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="min-w-0">
+          <h2 className="text-lg sm:text-xl font-bold text-[#3D2E28]">Request Appointment</h2>
           <p className="text-sm text-[#8B7562] mt-0.5">
             Pick an available doctor and choose a time slot to submit your appointment request.
           </p>
         </div>
       </div>
 
-      <div className="p-7">
+      <div className="p-4 sm:p-6 lg:p-7">
         {bookingMessage && (
           <div
             className={`flex items-center gap-2 text-sm rounded-2xl px-4 py-3 mb-5 border ${
@@ -169,7 +169,7 @@ export default function BookAppointment() {
             ) : (
               <AlertCircle className="w-4 h-4 shrink-0" />
             )}
-            <span>{bookingMessage.text}</span>
+            <span className="break-words">{bookingMessage.text}</span>
           </div>
         )}
 
@@ -275,7 +275,7 @@ export default function BookAppointment() {
             <button
               type="submit"
               disabled={submitting}
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#8B1E42] text-white text-sm font-semibold hover:bg-[#731836] disabled:opacity-50 transition shadow-sm"
+              className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-[#8B1E42] text-white text-sm font-semibold hover:bg-[#731836] disabled:opacity-50 transition shadow-sm w-full sm:w-auto"
             >
               {submitting ? (
                 <>
@@ -293,7 +293,7 @@ export default function BookAppointment() {
         </form>
 
         {doctorList.length > 0 && (
-          <div className="mt-6 pt-5 border-t border-[#DCCFBF]">
+          <div className="mt-6 pt-5 border-t border-[#DCCFBF] overflow-x-auto">
             <div className="text-xs font-semibold text-[#8B7562] uppercase tracking-wider mb-3">
               Current available doctors
             </div>

@@ -34,13 +34,13 @@ export default function MonthCalendar({ scheduledDays = [], selected, onSelectDa
   const weekdayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
   return (
-    <div className="bg-[#F8F3EC] border border-[#DCCFBF] rounded-3xl p-6 w-full lg:w-[380px] shadow-sm">
+    <div className="bg-[#F8F3EC] border border-[#DCCFBF] rounded-3xl p-4 sm:p-6 w-full lg:w-[380px] shadow-sm">
       <div className="flex items-center justify-between mb-4">
-        <div>
+        <div className="min-w-0">
           <div className="text-xs uppercase font-bold tracking-wider text-[#8B7562]">
             Schedule
           </div>
-          <div className="text-lg font-bold text-[#3D2E28]">{monthLabel}</div>
+          <div className="text-base sm:text-lg font-bold text-[#3D2E28] truncate">{monthLabel}</div>
         </div>
         <div className="flex items-center gap-1.5">
           <button
@@ -60,23 +60,23 @@ export default function MonthCalendar({ scheduledDays = [], selected, onSelectDa
         </div>
       </div>
 
-      <div className="grid grid-cols-7 gap-1.5 mb-2">
+      <div className="grid grid-cols-7 gap-1 sm:gap-1.5 mb-2">
         {weekdayLabels.map((w, i) => (
-          <div key={i} className="text-xs font-semibold text-[#8B7562] text-center">
+          <div key={i} className="text-[10px] sm:text-xs font-semibold text-[#8B7562] text-center">
             {w}
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-7 gap-1.5">
+      <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
         {cells.map((d, i) =>
           d === null ? (
-            <div key={i} className="h-9 w-9" />
+            <div key={i} className="aspect-square w-full max-w-9 max-h-9 mx-auto" />
           ) : (
             <button
               key={i}
               onClick={() => onSelectDate(new Date(year, month, d))}
-              className={`h-9 w-9 mx-auto flex flex-col items-center justify-center rounded-xl text-sm transition relative ${
+              className={`aspect-square w-full max-w-9 max-h-9 mx-auto flex flex-col items-center justify-center rounded-xl text-xs sm:text-sm transition relative ${
                 isSelected(d)
                   ? "bg-[#8B1E42] text-white font-bold shadow-sm"
                   : isToday(d)
@@ -97,7 +97,7 @@ export default function MonthCalendar({ scheduledDays = [], selected, onSelectDa
         )}
       </div>
 
-      <div className="mt-5 pt-3 border-t border-[#DCCFBF] flex items-center justify-between text-xs text-[#8B7562] font-medium">
+      <div className="mt-4 sm:mt-5 pt-3 border-t border-[#DCCFBF] flex flex-wrap items-center justify-between gap-2 text-[11px] sm:text-xs text-[#8B7562] font-medium">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-[#C08A3E]" />
           Has appointments

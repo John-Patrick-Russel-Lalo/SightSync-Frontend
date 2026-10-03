@@ -463,7 +463,7 @@ export default function Overview({ onNavigate }) {
     archives.length;
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto p-2">
+    <div className="space-y-6 sm:space-y-8 max-w-6xl mx-auto">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -471,7 +471,7 @@ export default function Overview({ onNavigate }) {
             <LayoutDashboard className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-stone-900">System Overview</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-stone-900">System Overview</h2>
             <p className="text-sm text-stone-600">
               Consolidated reports across patients, doctors, inventory, sales, scheduling, and archives.
             </p>
@@ -530,7 +530,7 @@ export default function Overview({ onNavigate }) {
           loading={loading}
           error={sectionErrors.patients}
         >
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
             <Metric label="New in range" value={formatNumber(patientReport.newInRange)} />
             <Metric label="Pending profile" value={formatNumber(patientReport.pending)} />
           </div>
@@ -547,7 +547,7 @@ export default function Overview({ onNavigate }) {
           loading={loading}
           error={sectionErrors.doctors}
         >
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
             <Metric label="Unprofiled" value={formatNumber(doctorReport.unprofiled)} />
             <Metric label="Avg. fee" value={formatCurrency(doctorReport.avgFee)} />
           </div>
@@ -564,7 +564,7 @@ export default function Overview({ onNavigate }) {
           loading={loading}
           error={sectionErrors.inventory}
         >
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
             <Metric label="Stock value" value={formatCurrency(inventoryReport.stockValue)} />
             <Metric label="Retail value" value={formatCurrency(inventoryReport.retailValue)} />
             <Metric label="Potential margin" value={formatCurrency(inventoryReport.potentialMargin)} />
@@ -582,7 +582,7 @@ export default function Overview({ onNavigate }) {
           loading={loading}
           error={sectionErrors.pos}
         >
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
             <Metric label="Revenue" value={formatCurrency(posReport.revenue)} />
             <Metric label="Avg. ticket" value={formatCurrency(posReport.average)} />
             <Metric label="Items sold" value={formatNumber(posReport.itemsSold)} />
@@ -601,7 +601,7 @@ export default function Overview({ onNavigate }) {
           loading={loading}
           error={sectionErrors.schedules}
         >
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
             <Metric label="Today" value={formatNumber(scheduleReport.today)} />
             <Metric label="Upcoming" value={formatNumber(scheduleReport.upcoming)} />
           </div>
@@ -618,7 +618,7 @@ export default function Overview({ onNavigate }) {
           loading={loading}
           error={sectionErrors.archive}
         >
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
             <Metric label="All-time archive" value={formatNumber(archiveReport.lifetime)} />
             <Metric label="In window" value={formatNumber(archiveReport.total)} />
           </div>
@@ -629,14 +629,14 @@ export default function Overview({ onNavigate }) {
 
       {/* Global states */}
       {loading && !hasAnyData && (
-        <div className="p-10 flex items-center justify-center gap-3 text-stone-500">
+        <div className="p-6 sm:p-10 flex items-center justify-center gap-3 text-stone-500">
           <Loader2 className="w-6 h-6 animate-spin text-[#8B1E42]" />
           <span className="text-sm font-medium">Compiling overview reports...</span>
         </div>
       )}
 
       {!loading && !hasAnyData && Object.keys(errors).length > 0 && (
-        <div className="p-10 text-center bg-rose-50/50 border border-rose-200 rounded-2xl">
+        <div className="p-6 sm:p-10 text-center bg-rose-50/50 border border-rose-200 rounded-2xl">
           <AlertCircle className="w-6 h-6 mx-auto text-rose-600" />
           <p className="mt-2 font-semibold text-rose-800">Failed to load overview data</p>
           <ul className="text-xs text-stone-600 mt-2 space-y-1">
@@ -673,7 +673,7 @@ function computedRevenue(sales) {
 
 function StatCard({ title, value, icon, accent }) {
   return (
-    <div className="bg-[#F8F3EC] border border-[#DCD0C0] p-5 rounded-2xl shadow-sm space-y-3">
+    <div className="bg-[#F8F3EC] border border-[#DCD0C0] p-4 sm:p-5 rounded-2xl shadow-sm space-y-3">
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs font-semibold uppercase tracking-wider text-stone-500">
           {title}
@@ -689,7 +689,7 @@ function StatCard({ title, value, icon, accent }) {
 function ReportCard({ title, subtitle, icon, tabId, onNavigate, loading, error, children }) {
   return (
     <section className="bg-[#F8F3EC] border border-[#DCD0C0] rounded-2xl shadow-sm overflow-hidden flex flex-col">
-      <div className="p-5 border-b border-[#EBE3D8] flex items-center justify-between gap-3 bg-[#FAF7F2]">
+      <div className="p-4 sm:p-5 border-b border-[#EBE3D8] flex items-center justify-between gap-3 bg-[#FAF7F2]">
         <div className="flex items-center gap-3 min-w-0">
           <div className="p-2 bg-[#F2EAE1] text-[#8B1E42] rounded-xl border border-[#E3D8CC] shrink-0">
             {icon}
@@ -710,7 +710,7 @@ function ReportCard({ title, subtitle, icon, tabId, onNavigate, loading, error, 
         )}
       </div>
 
-      <div className="p-5 space-y-4 flex-1">
+      <div className="p-4 sm:p-5 space-y-4 flex-1">
         {error ? (
           <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl flex items-start gap-2 text-xs">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
@@ -731,8 +731,8 @@ function ReportCard({ title, subtitle, icon, tabId, onNavigate, loading, error, 
 
 function Metric({ label, value }) {
   return (
-    <div className="bg-[#F2EAE1] border border-[#E3D8CC] rounded-xl px-4 py-3">
-      <div className="text-xs font-semibold text-stone-500 uppercase tracking-wider">{label}</div>
+    <div className="bg-[#F2EAE1] border border-[#E3D8CC] rounded-xl px-3 py-2.5 sm:px-4 sm:py-3">
+      <div className="text-[10px] sm:text-xs font-semibold text-stone-500 uppercase tracking-wider truncate">{label}</div>
       <div className="mt-0.5 text-sm font-bold text-stone-900 break-words">{value}</div>
     </div>
   );

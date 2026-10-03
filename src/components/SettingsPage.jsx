@@ -60,13 +60,13 @@ export default function SettingsPage() {
   const RoleIcon = roleInfo.icon;
 
   return (
-    <div className="space-y-8 pb-8">
+    <div className="space-y-6 sm:space-y-8 pb-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-stone-900">Settings</h2>
+        <div className="min-w-0">
+          <h2 className="text-xl sm:text-2xl font-bold text-stone-900">Settings</h2>
           <p className="text-sm text-stone-600">Manage your preferences, security, and notifications.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {saved && (
             <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-100/70 border border-emerald-200 px-3 py-1.5 rounded-full">
               <Check className="w-3.5 h-3.5" /> Changes saved
@@ -74,7 +74,7 @@ export default function SettingsPage() {
           )}
           <button
             onClick={handleSave}
-            className="flex items-center gap-2 bg-[#8B1E42] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#731836] transition shadow-sm"
+            className="flex items-center justify-center gap-2 bg-[#8B1E42] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#731836] transition shadow-sm w-full sm:w-auto"
           >
             <Save className="w-4 h-4" /> Save Changes
           </button>
@@ -82,12 +82,12 @@ export default function SettingsPage() {
       </div>
 
       {/* Role Summary Banner */}
-      <div className="bg-[#F8F3EC] border border-[#DCD0C0] rounded-2xl p-6 shadow-sm flex items-center gap-4">
+      <div className="bg-[#F8F3EC] border border-[#DCD0C0] rounded-2xl p-4 sm:p-6 shadow-sm flex items-center gap-4">
         <div className="p-3 bg-[#8B1E42]/10 text-[#8B1E42] rounded-2xl shrink-0">
           <RoleIcon className="w-7 h-7" />
         </div>
-        <div>
-          <div className="text-lg font-bold text-stone-900 capitalize">{role} Settings</div>
+        <div className="min-w-0">
+          <div className="text-base sm:text-lg font-bold text-stone-900 capitalize">{role} Settings</div>
           <p className="text-sm text-stone-600">{roleInfo.blurb}</p>
         </div>
       </div>
@@ -107,7 +107,7 @@ export default function SettingsPage() {
             type="text"
             defaultValue={user?.display_name || user?.name || user?.username || ""}
             placeholder="Your name"
-            className="bg-[#F2EAE1] border border-[#DCD0C0] rounded-xl px-3 py-2 text-sm text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#8B1E42]/20 focus:border-[#8B1E42] w-56"
+            className="bg-[#F2EAE1] border border-[#DCD0C0] rounded-xl px-3 py-2 text-sm text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#8B1E42]/20 focus:border-[#8B1E42] w-full sm:w-56"
           />
         </SettingRow>
         <SettingRow
@@ -318,9 +318,9 @@ export default function SettingsPage() {
 function SettingsCard({ title, description, icon, children }) {
   return (
     <section className="bg-[#F8F3EC] border border-[#DCD0C0] rounded-2xl shadow-sm overflow-hidden">
-      <div className="p-6 border-b border-[#EBE3D8] flex items-center gap-3 bg-[#FAF7F2]">
-        <div className="p-2.5 bg-[#F2EAE1] rounded-xl border border-[#E3D8CC]">{icon}</div>
-        <div>
+      <div className="p-4 sm:p-6 border-b border-[#EBE3D8] flex items-center gap-3 bg-[#FAF7F2]">
+        <div className="p-2.5 bg-[#F2EAE1] rounded-xl border border-[#E3D8CC] shrink-0">{icon}</div>
+        <div className="min-w-0">
           <h3 className="text-base font-bold text-stone-900">{title}</h3>
           <p className="text-xs text-stone-500 mt-0.5">{description}</p>
         </div>
@@ -332,7 +332,7 @@ function SettingsCard({ title, description, icon, children }) {
 
 function SettingRow({ icon, title, description, children }) {
   return (
-    <div className="flex items-center justify-between gap-4 py-4 px-2">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 py-4 px-2">
       <div className="flex items-start gap-3 min-w-0">
         <div className="p-2 bg-[#F2EAE1] rounded-xl border border-[#E3D8CC] text-[#8B1E42] shrink-0">
           {icon}
@@ -342,7 +342,7 @@ function SettingRow({ icon, title, description, children }) {
           <p className="text-xs text-stone-500 mt-0.5">{description}</p>
         </div>
       </div>
-      <div className="shrink-0">{children}</div>
+      <div className="w-full sm:w-auto sm:shrink-0">{children}</div>
     </div>
   );
 }

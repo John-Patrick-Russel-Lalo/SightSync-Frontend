@@ -428,11 +428,11 @@ const appointmentDatesSet = useMemo(() => {
   };
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto p-2">
+    <div className="space-y-6 sm:space-y-8 max-w-6xl mx-auto">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-stone-900">Schedule Appointment</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-stone-900">Schedule Appointment</h2>
           <p className="text-sm text-stone-600">
             Select a doctor, pick an available time slot, and confirm your booking.
           </p>
@@ -458,7 +458,7 @@ const appointmentDatesSet = useMemo(() => {
         {/* Booking Form */}
         <form
           onSubmit={handleBookAppointment}
-          className="lg:col-span-2 bg-[#F8F3EC] border border-[#DCD0C0] p-6 rounded-2xl shadow-sm space-y-6"
+          className="lg:col-span-2 bg-[#F8F3EC] border border-[#DCD0C0] p-4 sm:p-6 rounded-2xl shadow-sm space-y-6"
         >
           <h3 className="text-lg font-bold text-stone-900 border-b border-[#EBE3D8] pb-3 flex items-center gap-2">
             <Plus className="w-5 h-5 text-[#8B1E42]" /> New Appointment Details
@@ -695,10 +695,10 @@ const appointmentDatesSet = useMemo(() => {
 
         {/* Existing Appointments Sidebar (For Doctor / Admin Overview) */}
         {(user?.role === "admin" || user?.role === "doctor") && (
-          <div className="bg-[#F8F3EC] border border-[#DCD0C0] p-6 rounded-2xl shadow-sm space-y-6 h-fit">
+          <div className="bg-[#F8F3EC] border border-[#DCD0C0] p-4 sm:p-6 rounded-2xl shadow-sm space-y-6 h-fit">
             <div className="pb-3 border-b border-[#EBE3D8]">
               <div className="flex items-center justify-between gap-2">
-                <h3 className="text-lg font-bold text-stone-900">Appointments List</h3>
+                <h3 className="text-base sm:text-lg font-bold text-stone-900">Appointments List</h3>
                 <button
                   onClick={fetchExistingAppointments}
                   className="p-1.5 text-stone-500 hover:text-stone-800 rounded-lg hover:bg-[#EBE3D8] transition"
@@ -847,7 +847,7 @@ const appointmentDatesSet = useMemo(() => {
             </div>
 
             {loadingAppointments ? (
-              <div className="flex items-center justify-center gap-2 text-xs text-stone-500 py-8">
+              <div className="flex items-center justify-center gap-2 text-xs text-stone-500 py-6 sm:py-8">
                 <Loader2 className="w-4 h-4 animate-spin text-[#8B1E42]" />
                 Loading appointments...
               </div>

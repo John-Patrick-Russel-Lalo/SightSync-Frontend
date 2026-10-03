@@ -119,7 +119,7 @@ export default function PatientProfileForm() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto my-8 bg-[#F8F3EC] rounded-xl shadow-md border border-[#DCD0C0] p-6 md:p-8">
+    <div className="max-w-3xl mx-auto my-4 sm:my-8 bg-[#F8F3EC] rounded-xl shadow-md border border-[#DCD0C0] p-4 sm:p-6 md:p-8">
       {/* Header */}
       <div className="border-b border-[#DCD0C0] pb-5 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>

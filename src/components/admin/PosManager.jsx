@@ -374,11 +374,11 @@ export default function PosManager() {
     new Date(d).toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" });
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto p-2">
+    <div className="space-y-6 sm:space-y-8 max-w-6xl mx-auto">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-stone-900">Point of Sale</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-stone-900">Point of Sale</h2>
           <p className="text-sm text-stone-600">
             Ring up frames, lenses, and accessories with live inventory deductions.
           </p>
@@ -420,9 +420,9 @@ export default function PosManager() {
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           {/* Product Catalog */}
           <section className="lg:col-span-3 bg-[#F8F3EC] border border-[#DCD0C0] rounded-2xl shadow-sm overflow-hidden">
-            <div className="p-5 border-b border-[#EBE3D8] flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#FAF7F2]">
+            <div className="p-4 sm:p-5 border-b border-[#EBE3D8] flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#FAF7F2]">
               <div>
-                <h3 className="text-lg font-bold text-stone-900">Products</h3>
+                <h3 className="text-base sm:text-lg font-bold text-stone-900">Products</h3>
                 <p className="text-xs text-stone-500 mt-0.5">
                   {filteredInventory.length} item{filteredInventory.length === 1 ? "" : "s"} available to sell
                 </p>
@@ -452,14 +452,14 @@ export default function PosManager() {
               </div>
             </div>
 
-            <div className="p-5">
+            <div className="p-4 sm:p-5">
               {inventoryLoading ? (
-                <div className="p-12 flex items-center justify-center gap-3 text-stone-500">
+                <div className="p-8 sm:p-12 flex items-center justify-center gap-3 text-stone-500">
                   <Loader2 className="w-6 h-6 animate-spin text-[#8B1E42]" />
                   <span className="text-sm font-medium">Fetching products...</span>
                 </div>
               ) : inventoryError ? (
-                <div className="p-10 text-center bg-rose-50/50 rounded-2xl">
+                <div className="p-6 sm:p-10 text-center bg-rose-50/50 rounded-2xl">
                   <AlertCircle className="w-6 h-6 mx-auto text-rose-600" />
                   <p className="mt-2 font-semibold text-rose-800">Failed to load products</p>
                   <p className="text-xs text-stone-600 mt-1">{inventoryError}</p>
@@ -471,7 +471,7 @@ export default function PosManager() {
                   </button>
                 </div>
               ) : filteredInventory.length === 0 ? (
-                <div className="p-14 text-center text-stone-500">
+                <div className="p-8 sm:p-14 text-center text-stone-500">
                   <Store className="w-8 h-8 mx-auto text-stone-300" />
                   <p className="mt-3 text-sm font-medium">No products match your filters.</p>
                   <p className="text-xs text-stone-400 mt-1">
@@ -546,9 +546,9 @@ export default function PosManager() {
 
           {/* Cart & Payment */}
           <section className="lg:col-span-2 bg-[#F8F3EC] border border-[#DCD0C0] rounded-2xl shadow-sm overflow-hidden self-start lg:sticky lg:top-24">
-            <div className="p-5 border-b border-[#EBE3D8] flex items-center justify-between bg-[#FAF7F2]">
+            <div className="p-4 sm:p-5 border-b border-[#EBE3D8] flex items-center justify-between bg-[#FAF7F2]">
               <div>
-                <h3 className="text-lg font-bold text-stone-900">Current Order</h3>
+                <h3 className="text-base sm:text-lg font-bold text-stone-900">Current Order</h3>
                 <p className="text-xs text-stone-500 mt-0.5">{cart.length} line item{cart.length === 1 ? "" : "s"}</p>
               </div>
               {cart.length > 0 && (
@@ -569,10 +569,10 @@ export default function PosManager() {
               </div>
             )}
 
-            <div className="p-5 space-y-5">
+            <div className="p-4 sm:p-5 space-y-5">
               {/* Cart lines */}
               {cart.length === 0 ? (
-                <div className="py-8 text-center text-stone-500">
+                <div className="py-6 sm:py-8 text-center text-stone-500">
                   <Package className="w-8 h-8 mx-auto text-stone-300" />
                   <p className="mt-3 text-sm font-medium">Your cart is empty.</p>
                   <p className="text-xs text-stone-400 mt-1">Add products from the catalog to begin.</p>
@@ -627,7 +627,7 @@ export default function PosManager() {
                   <span>Subtotal</span>
                   <span className="font-semibold text-stone-800">{formatCurrency(subtotal)}</span>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-2 sm:gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-1.5">
                       Discount (₱)
@@ -833,9 +833,9 @@ export default function PosManager() {
 
           {/* Sales table */}
           <section className="bg-[#F8F3EC] border border-[#DCD0C0] rounded-2xl shadow-sm overflow-hidden">
-            <div className="p-5 border-b border-[#EBE3D8] flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#FAF7F2]">
+            <div className="p-4 sm:p-5 border-b border-[#EBE3D8] flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#FAF7F2]">
               <div>
-                <h3 className="text-lg font-bold text-stone-900">Sales Records</h3>
+                <h3 className="text-base sm:text-lg font-bold text-stone-900">Sales Records</h3>
                 <p className="text-xs text-stone-500 mt-0.5">
                   {filteredSales.length} record{filteredSales.length === 1 ? "" : "s"} loaded
                 </p>
@@ -854,12 +854,12 @@ export default function PosManager() {
 
             <div className="overflow-x-auto">
               {salesLoading ? (
-                <div className="p-16 flex items-center justify-center gap-3 text-stone-500">
+                <div className="p-8 sm:p-16 flex items-center justify-center gap-3 text-stone-500">
                   <Loader2 className="w-6 h-6 animate-spin text-[#8B1E42]" />
                   <span className="text-sm font-medium">Fetching sales records...</span>
                 </div>
               ) : salesError ? (
-                <div className="p-10 text-center bg-rose-50/50">
+                <div className="p-6 sm:p-10 text-center bg-rose-50/50">
                   <AlertCircle className="w-6 h-6 mx-auto text-rose-600" />
                   <p className="mt-2 font-semibold text-rose-800">Failed to load sales</p>
                   <p className="text-xs text-stone-600 mt-1">{salesError}</p>
@@ -871,46 +871,46 @@ export default function PosManager() {
                   </button>
                 </div>
               ) : filteredSales.length === 0 ? (
-                <div className="p-14 text-center text-stone-500">
+                <div className="p-8 sm:p-14 text-center text-stone-500">
                   <Receipt className="w-8 h-8 mx-auto text-stone-300" />
                   <p className="mt-3 text-sm font-medium">No sales found.</p>
                   <p className="text-xs text-stone-400 mt-1">Complete a sale from the Checkout tab.</p>
                 </div>
               ) : (
-                <table className="w-full text-left text-sm text-stone-700">
+                <table className="w-full min-w-[900px] text-left text-sm text-stone-700">
                   <thead className="bg-[#F2EAE1]/80 text-xs uppercase text-stone-500 tracking-wider border-b border-[#EBE3D8] font-semibold">
                     <tr>
-                      <th className="px-6 py-3.5">Receipt No.</th>
-                      <th className="px-6 py-3.5">Customer</th>
-                      <th className="px-6 py-3.5">Payment</th>
-                      <th className="px-6 py-3.5">Total</th>
-                      <th className="px-6 py-3.5">Status</th>
-                      <th className="px-6 py-3.5">Cashier</th>
-                      <th className="px-6 py-3.5">Date</th>
-                      <th className="px-6 py-3.5 text-right">Actions</th>
+                      <th className="px-4 sm:px-6 py-3.5">Receipt No.</th>
+                      <th className="px-4 sm:px-6 py-3.5">Customer</th>
+                      <th className="px-4 sm:px-6 py-3.5">Payment</th>
+                      <th className="px-4 sm:px-6 py-3.5">Total</th>
+                      <th className="px-4 sm:px-6 py-3.5">Status</th>
+                      <th className="px-4 sm:px-6 py-3.5">Cashier</th>
+                      <th className="px-4 sm:px-6 py-3.5">Date</th>
+                      <th className="px-4 sm:px-6 py-3.5 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#EBE3D8]">
                     {filteredSales.map((sale) => (
                       <tr key={sale.id} className="hover:bg-[#F2EAE1]/50 transition-colors">
-                        <td className="px-6 py-4">
+                        <td className="px-4 sm:px-6 py-4">
                           <span className="font-mono font-bold text-stone-900">{sale.receipt_number}</span>
                         </td>
-                        <td className="px-6 py-4">{sale.customer_name || "Walk-in Customer"}</td>
-                        <td className="px-6 py-4">
+                        <td className="px-4 sm:px-6 py-4">{sale.customer_name || "Walk-in Customer"}</td>
+                        <td className="px-4 sm:px-6 py-4">
                           <PaymentBadge method={sale.payment_method} />
                         </td>
-                        <td className="px-6 py-4 font-semibold text-stone-900">
+                        <td className="px-4 sm:px-6 py-4 font-semibold text-stone-900">
                           {formatCurrency(sale.total)}
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-4 sm:px-6 py-4">
                           <StatusBadge status={sale.status} />
                         </td>
-                        <td className="px-6 py-4">{sale.sold_by_name || "—"}</td>
-                        <td className="px-6 py-4 text-stone-600 whitespace-nowrap">
+                        <td className="px-4 sm:px-6 py-4">{sale.sold_by_name || "—"}</td>
+                        <td className="px-4 sm:px-6 py-4 text-stone-600 whitespace-nowrap">
                           {formatDate(sale.created_at)}
                         </td>
-                        <td className="px-6 py-4 text-right whitespace-nowrap">
+                        <td className="px-4 sm:px-6 py-4 text-right whitespace-nowrap">
                           <button
                             onClick={() => handleViewSale(sale.id)}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-[#8B1E42] bg-[#8B1E42]/10 hover:bg-[#8B1E42] hover:text-white transition mr-2"
@@ -999,13 +999,13 @@ export default function PosManager() {
             onClose={() => setSelectedSale(null)}
           />
           {saleDetailLoading ? (
-            <div className="p-10 flex items-center justify-center gap-3 text-stone-500">
+            <div className="p-6 sm:p-10 flex items-center justify-center gap-3 text-stone-500">
               <Loader2 className="w-6 h-6 animate-spin text-[#8B1E42]" />
               <span className="text-sm font-medium">Loading receipt...</span>
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2 sm:gap-3">
                 <DetailChip label="Customer" value={selectedSale.customer_name || "Walk-in Customer"} />
                 <DetailChip label="Cashier" value={selectedSale.sold_by_name || "—"} />
                 <DetailChip
@@ -1080,7 +1080,7 @@ export default function PosManager() {
 
 function StatCard({ title, value, icon, accent }) {
   return (
-    <div className="bg-[#F8F3EC] border border-[#DCD0C0] p-5 rounded-2xl shadow-sm space-y-3">
+    <div className="bg-[#F8F3EC] border border-[#DCD0C0] p-4 sm:p-5 rounded-2xl shadow-sm space-y-3">
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold uppercase tracking-wider text-stone-500">{title}</span>
         <div className="p-2.5 bg-[#F2EAE1] rounded-xl border border-[#E3D8CC]">{icon}</div>
@@ -1154,7 +1154,7 @@ function Row({ label, value }) {
 function ModalLayer({ children }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/40 backdrop-blur-sm">
-      <div className="bg-[#F8F3EC] border border-[#DCD0C0] rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-6 relative max-h-[90vh] overflow-y-auto">
+      <div className="bg-[#F8F3EC] border border-[#DCD0C0] rounded-2xl max-w-xl w-full p-4 sm:p-6 shadow-2xl space-y-6 relative max-h-[90vh] overflow-y-auto">
         {children}
       </div>
     </div>
@@ -1165,7 +1165,7 @@ function ModalHeader({ title, subtitle, onClose }) {
   return (
     <div className="flex items-start justify-between gap-4">
       <div>
-        <h3 className="text-lg font-bold text-stone-900">{title}</h3>
+        <h3 className="text-base sm:text-lg font-bold text-stone-900">{title}</h3>
         <p className="text-xs text-stone-500 mt-0.5">{subtitle}</p>
       </div>
       <button

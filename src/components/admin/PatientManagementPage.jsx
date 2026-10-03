@@ -292,9 +292,9 @@ export default function PatientManagementPage({ users: initialUsers, fetchWithCr
   };
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto p-2">
+    <div className="space-y-6 sm:space-y-8 max-w-6xl mx-auto">
       <div>
-        <h2 className="text-2xl font-bold text-stone-900">Patient Management</h2>
+        <h2 className="text-xl sm:text-2xl font-bold text-stone-900">Patient Management</h2>
         <p className="text-sm text-stone-600">View and edit profiles or update status for registered patients.</p>
       </div>
 
@@ -306,10 +306,10 @@ export default function PatientManagementPage({ users: initialUsers, fetchWithCr
       )}
 
       <section className="bg-[#F8F3EC] border border-[#DCD0C0] rounded-2xl shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-[#EBE3D8] bg-[#FAF7F2]">
+        <div className="p-4 sm:p-5 border-b border-[#EBE3D8] bg-[#FAF7F2]">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h3 className="text-lg font-bold text-stone-900">Patients</h3>
+              <h3 className="text-base sm:text-lg font-bold text-stone-900">Patients</h3>
               <p className="text-xs text-stone-500 mt-0.5">
                 {filteredPatients.length} record{filteredPatients.length === 1 ? "" : "s"} loaded
               </p>
@@ -349,14 +349,14 @@ export default function PatientManagementPage({ users: initialUsers, fetchWithCr
         </div>
 
         <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm text-stone-700">
+        <table className="w-full min-w-[720px] text-left text-sm text-stone-700">
           <thead className="bg-[#F2EAE1]/80 text-xs uppercase text-stone-500 tracking-wider border-b border-[#EBE3D8] font-semibold">
             <tr>
-              <th className="px-6 py-3.5">Patient ID</th>
-              <th className="px-6 py-3.5">Patient Name</th>
-              <th className="px-6 py-3.5">Phone Number</th>
-              <th className="px-6 py-3.5">Status</th>
-              <th className="px-6 py-3.5 text-right">Action</th>
+              <th className="px-4 sm:px-6 py-3.5">Patient ID</th>
+              <th className="px-4 sm:px-6 py-3.5">Patient Name</th>
+              <th className="px-4 sm:px-6 py-3.5">Phone Number</th>
+              <th className="px-4 sm:px-6 py-3.5">Status</th>
+              <th className="px-4 sm:px-6 py-3.5 text-right">Action</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#EBE3D8]">
@@ -368,9 +368,9 @@ export default function PatientManagementPage({ users: initialUsers, fetchWithCr
 
                 return (
                   <tr key={p.id} className="hover:bg-[#F2EAE1]/50 transition-colors">
-                    <td className="px-6 py-4 font-mono text-xs text-stone-600">{p.id}</td>
-                    <td className="px-6 py-4 font-bold text-stone-900">{p.display_name || p.username}</td>
-                    <td className="px-6 py-4 text-stone-600">
+                    <td className="px-4 sm:px-6 py-4 font-mono text-xs text-stone-600">{p.id}</td>
+                    <td className="px-4 sm:px-6 py-4 font-bold text-stone-900">{p.display_name || p.username}</td>
+                    <td className="px-4 sm:px-6 py-4 text-stone-600">
                       {loadingProfiles && !profile ? (
                         <div className="flex items-center gap-1.5 text-xs text-stone-400">
                           <Loader2 className="w-3 h-3 animate-spin text-[#8B1E42]" />
@@ -380,7 +380,7 @@ export default function PatientManagementPage({ users: initialUsers, fetchWithCr
                         phoneNumber
                       )}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 sm:px-6 py-4">
                       <div className="flex items-center gap-2">
                         <select
                           value={currentStatus}
@@ -400,7 +400,7 @@ export default function PatientManagementPage({ users: initialUsers, fetchWithCr
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-4 sm:px-6 py-4 text-right">
                       <button
                         onClick={() => fetchPatientProfile(p.id)}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-[#8B1E42] bg-[#8B1E42]/10 hover:bg-[#8B1E42] hover:text-white transition"
@@ -413,7 +413,7 @@ export default function PatientManagementPage({ users: initialUsers, fetchWithCr
               })
             ) : (
               <tr>
-                <td colSpan="5" className="px-6 py-14 text-center text-stone-500">
+                <td colSpan="5" className="px-4 sm:px-6 py-10 sm:py-14 text-center text-stone-500">
                   <User className="w-8 h-8 mx-auto text-stone-300" />
                   <p className="mt-3 text-sm font-medium">No records found.</p>
                   <p className="text-xs text-stone-400 mt-1">Try a different filter or clear your search.</p>
@@ -428,7 +428,7 @@ export default function PatientManagementPage({ users: initialUsers, fetchWithCr
       {selectedPatientId && (
         <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-[#F8F3EC] border border-[#DCD0C0] rounded-2xl w-full max-w-2xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="p-5 border-b border-[#EBE3D8] bg-[#FAF7F2] flex items-center justify-between">
+            <div className="p-4 sm:p-5 border-b border-[#EBE3D8] bg-[#FAF7F2] flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-[#8B1E42] text-white rounded-xl">
                   <User className="w-5 h-5" />
@@ -445,7 +445,7 @@ export default function PatientManagementPage({ users: initialUsers, fetchWithCr
               </button>
             </div>
 
-            <div className="p-6 overflow-y-auto space-y-6">
+            <div className="p-4 sm:p-6 overflow-y-auto space-y-6">
               {modalError && (
                 <div className="p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl flex items-start gap-3 text-sm">
                   <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-rose-600" />
@@ -457,14 +457,14 @@ export default function PatientManagementPage({ users: initialUsers, fetchWithCr
               )}
 
               {loadingDetails ? (
-                <div className="p-12 flex items-center justify-center gap-3 text-stone-500">
+                <div className="p-8 sm:p-12 flex items-center justify-center gap-3 text-stone-500">
                   <Loader2 className="w-6 h-6 animate-spin text-[#8B1E42]" />
                   <span>Loading patient details...</span>
                 </div>
               ) : patientDetails ? (
                 isEditing ? (
                   <form id="edit-patient-form" onSubmit={handleUpdatePatientProfile} className="space-y-4 text-sm">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-2">Phone Number</label>
                         <input
@@ -555,7 +555,7 @@ export default function PatientManagementPage({ users: initialUsers, fetchWithCr
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4 text-xs">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                       <div className="p-3 bg-[#FAF7F2] border border-[#E3D8CC] rounded-xl space-y-1">
                         <span className="text-stone-500 font-medium">Date of Birth</span>
                         <p className="font-semibold text-stone-800">

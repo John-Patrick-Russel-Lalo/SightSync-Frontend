@@ -948,7 +948,7 @@ export default function Analytics({ onNavigate }) {
     users.length || doctors.length || inventory.length || sales.length || appointments.length;
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto p-2">
+    <div className="space-y-6 sm:space-y-8 max-w-6xl mx-auto">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -956,7 +956,7 @@ export default function Analytics({ onNavigate }) {
             <ChartLine className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-stone-900">Analytics</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-stone-900">Analytics</h2>
             <p className="text-sm text-stone-600">
               Understand what happened, then decide what to do about it.
             </p>
@@ -1031,12 +1031,12 @@ export default function Analytics({ onNavigate }) {
       </div>
 
       {loading && !hasData ? (
-        <div className="p-10 flex items-center justify-center gap-3 text-stone-500">
+        <div className="p-6 sm:p-10 flex items-center justify-center gap-3 text-stone-500">
           <Loader2 className="w-6 h-6 animate-spin text-[#8B1E42]" />
           <span className="text-sm font-medium">Crunching analytics...</span>
         </div>
       ) : !loading && !hasData && Object.keys(errors).length > 0 ? (
-        <div className="p-10 text-center bg-rose-50/50 border border-rose-200 rounded-2xl">
+        <div className="p-6 sm:p-10 text-center bg-rose-50/50 border border-rose-200 rounded-2xl">
           <AlertCircle className="w-6 h-6 mx-auto text-rose-600" />
           <p className="mt-2 font-semibold text-rose-800">Failed to load analytics data</p>
           <p className="text-xs text-stone-600 mt-1">{Object.values(errors)[0]}</p>
@@ -1104,7 +1104,7 @@ function DescriptiveView({
           className="lg:col-span-2"
         >
           <BarChart data={revenueTrend} valueKey="value" formatValue={formatCurrency} color="bg-[#8B1E42]" />
-          <div className="mt-4 grid grid-cols-3 gap-3">
+          <div className="mt-4 grid grid-cols-3 gap-2 sm:gap-3">
             <MiniStat label="Revenue" value={formatCurrency(sumOf(revenueTrend, (b) => b.value))} />
             <MiniStat label="Sales" value={formatNumber(sumOf(revenueTrend, (b) => b.secondary))} />
             <MiniStat
@@ -1147,7 +1147,7 @@ function DescriptiveView({
           icon={<Calendar className="w-5 h-5 text-blue-700" />}
         >
           <BarChart data={appointmentTrend} valueKey="value" formatValue={formatNumber} color="bg-blue-600" />
-          <div className="mt-4 grid grid-cols-3 gap-3">
+          <div className="mt-4 grid grid-cols-3 gap-2 sm:gap-3">
             <MiniStat label="Completion" value={formatPercent(appointmentStats.completionRate)} />
             <MiniStat label="No-shows" value={formatNumber(appointmentStats.noShow)} />
             <MiniStat label="Lost" value={formatNumber(appointmentStats.lost)} />
@@ -1168,7 +1168,7 @@ function DescriptiveView({
             ]}
             emptyLabel="No appointments in this window."
           />
-          <div className="mt-4 grid grid-cols-3 gap-3">
+          <div className="mt-4 grid grid-cols-3 gap-2 sm:gap-3">
             <MiniStat label="Total" value={formatNumber(appointmentStats.total)} />
             <MiniStat label="Pending" value={formatNumber(appointmentStats.pending)} />
             <MiniStat label="Lost" value={formatNumber(appointmentStats.lost)} />
@@ -1185,7 +1185,7 @@ function DescriptiveView({
           <EmptyState message="No doctor accounts found." />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-stone-700">
+            <table className="w-full min-w-[640px] text-left text-sm text-stone-700">
               <thead className="bg-[#F2EAE1]/80 text-xs uppercase text-stone-500 tracking-wider border-b border-[#EBE3D8] font-semibold">
                 <tr>
                   <th className="px-4 py-3">Doctor</th>
@@ -1292,7 +1292,7 @@ function DescriptiveView({
           subtitle="Snapshot metrics for the current period"
           icon={<UserCheck className="w-5 h-5 text-amber-700" />}
         >
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
             <MiniStat label="Total patients" value={formatNumber(patientStats.total)} />
             <MiniStat label="New in window" value={formatNumber(patientStats.newInWindow)} />
             <MiniStat label="Pending profile" value={formatNumber(patientStats.pending)} />
@@ -1379,7 +1379,7 @@ function InsightCard({ insight, reviewed, onToggleReviewed, onNavigate }) {
 
   return (
     <article
-      className={`bg-[#F8F3EC] border border-[#DCD0C0] border-l-4 ${config.accent} rounded-2xl shadow-sm p-5 space-y-3 transition ${
+      className={`bg-[#F8F3EC] border border-[#DCD0C0] border-l-4 ${config.accent} rounded-2xl shadow-sm p-4 sm:p-5 space-y-3 transition ${
         reviewed ? "opacity-60" : ""
       }`}
     >
@@ -1442,7 +1442,7 @@ function Panel({ title, subtitle, icon, className = "", children }) {
     <section
       className={`bg-[#F8F3EC] border border-[#DCD0C0] rounded-2xl shadow-sm overflow-hidden ${className}`}
     >
-      <div className="p-5 border-b border-[#EBE3D8] flex items-center gap-3 bg-[#FAF7F2]">
+      <div className="p-4 sm:p-5 border-b border-[#EBE3D8] flex items-center gap-3 bg-[#FAF7F2]">
         <div className="p-2 bg-[#F2EAE1] text-[#8B1E42] rounded-xl border border-[#E3D8CC] shrink-0">
           {icon}
         </div>
@@ -1451,7 +1451,7 @@ function Panel({ title, subtitle, icon, className = "", children }) {
           <p className="text-xs text-stone-500 mt-0.5 truncate">{subtitle}</p>
         </div>
       </div>
-      <div className="p-5">{children}</div>
+      <div className="p-4 sm:p-5">{children}</div>
     </section>
   );
 }
@@ -1471,7 +1471,7 @@ function KpiCard({ title, value, delta, icon, hint, invert = false, comparisonRe
   const TrendIcon = trend.Icon;
 
   return (
-    <div className="bg-[#F8F3EC] border border-[#DCD0C0] p-5 rounded-2xl shadow-sm space-y-3">
+    <div className="bg-[#F8F3EC] border border-[#DCD0C0] p-4 sm:p-5 rounded-2xl shadow-sm space-y-3">
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs font-semibold uppercase tracking-wider text-stone-500">
           {title}
@@ -1585,7 +1585,7 @@ function DistributionList({ segments, emptyLabel }) {
 
 function MiniStat({ label, value }) {
   return (
-    <div className="bg-[#F2EAE1] border border-[#E3D8CC] rounded-xl px-4 py-3">
+    <div className="bg-[#F2EAE1] border border-[#E3D8CC] rounded-xl px-2.5 py-2.5 sm:px-4 sm:py-3">
       <div className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider truncate">
         {label}
       </div>
@@ -1605,7 +1605,7 @@ function Line({ label, value }) {
 
 function EmptyState({ message }) {
   return (
-    <div className="py-8 text-center text-stone-500">
+    <div className="py-6 sm:py-8 text-center text-stone-500">
       <ChartColumn className="w-7 h-7 mx-auto text-stone-300" />
       <p className="mt-2 text-sm font-medium">{message}</p>
     </div>

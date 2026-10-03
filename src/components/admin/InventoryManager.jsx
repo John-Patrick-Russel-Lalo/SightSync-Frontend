@@ -312,11 +312,11 @@ export default function InventoryManager() {
   const formatCurrency = (n) => `₱${Number(n || 0).toFixed(2)}`;
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto p-2">
+    <div className="space-y-6 sm:space-y-8 max-w-6xl mx-auto">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-stone-900">Inventory Management</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-stone-900">Inventory Management</h2>
           <p className="text-sm text-stone-600">
             Track medication stock, frames, lenses, and replenishment schedules.
           </p>
@@ -395,9 +395,9 @@ export default function InventoryManager() {
 
       {/* Table Card */}
       <section className="bg-[#F8F3EC] border border-[#DCD0C0] rounded-2xl shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-[#EBE3D8] flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#FAF7F2]">
+        <div className="p-4 sm:p-5 border-b border-[#EBE3D8] flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#FAF7F2]">
           <div>
-            <h3 className="text-lg font-bold text-stone-900">
+            <h3 className="text-base sm:text-lg font-bold text-stone-900">
               {TAB_DEFS.find((t) => t.id === activeTab)?.label}
             </h3>
             <p className="text-xs text-stone-500 mt-0.5">
@@ -419,12 +419,12 @@ export default function InventoryManager() {
 
         <div className="overflow-x-auto">
           {loading ? (
-            <div className="p-16 flex items-center justify-center gap-3 text-stone-500">
+            <div className="p-8 sm:p-16 flex items-center justify-center gap-3 text-stone-500">
               <Loader2 className="w-6 h-6 animate-spin text-[#8B1E42]" />
               <span className="text-sm font-medium">Fetching inventory records...</span>
             </div>
           ) : error ? (
-            <div className="p-10 text-center bg-rose-50/50">
+            <div className="p-6 sm:p-10 text-center bg-rose-50/50">
               <AlertCircle className="w-6 h-6 mx-auto text-rose-600" />
               <p className="mt-2 font-semibold text-rose-800">Failed to load data</p>
               <p className="text-xs text-stone-600 mt-1">{error}</p>
@@ -436,46 +436,46 @@ export default function InventoryManager() {
               </button>
             </div>
           ) : filteredItems.length === 0 ? (
-            <div className="p-14 text-center text-stone-500">
+            <div className="p-8 sm:p-14 text-center text-stone-500">
               <Boxes className="w-8 h-8 mx-auto text-stone-300" />
               <p className="mt-3 text-sm font-medium">No records found.</p>
               <p className="text-xs text-stone-400 mt-1">Try a different tab or clear your search.</p>
             </div>
           ) : (
-            <table className="w-full text-left text-sm text-stone-700">
+            <table className="w-full min-w-[900px] text-left text-sm text-stone-700">
               <thead className="bg-[#F2EAE1]/80 text-xs uppercase text-stone-500 tracking-wider border-b border-[#EBE3D8] font-semibold">
                 <tr>
                   {activeTab === "frames" && (
                     <>
-                      <th className="px-6 py-3.5">Brand / Model</th>
-                      <th className="px-6 py-3.5">Color</th>
-                      <th className="px-6 py-3.5">Type</th>
-                      <th className="px-6 py-3.5">Material</th>
-                      <th className="px-6 py-3.5">Gender</th>
-                      <th className="px-6 py-3.5 text-right">Actions</th>
+                      <th className="px-4 sm:px-6 py-3.5">Brand / Model</th>
+                      <th className="px-4 sm:px-6 py-3.5">Color</th>
+                      <th className="px-4 sm:px-6 py-3.5">Type</th>
+                      <th className="px-4 sm:px-6 py-3.5">Material</th>
+                      <th className="px-4 sm:px-6 py-3.5">Gender</th>
+                      <th className="px-4 sm:px-6 py-3.5 text-right">Actions</th>
                     </>
                   )}
                   {activeTab === "lenses" && (
                     <>
-                      <th className="px-6 py-3.5">Brand</th>
-                      <th className="px-6 py-3.5">Type</th>
-                      <th className="px-6 py-3.5">Material</th>
-                      <th className="px-6 py-3.5">Coating</th>
-                      <th className="px-6 py-3.5">Index</th>
-                      <th className="px-6 py-3.5">Sphere Range</th>
-                      <th className="px-6 py-3.5 text-right">Actions</th>
+                      <th className="px-4 sm:px-6 py-3.5">Brand</th>
+                      <th className="px-4 sm:px-6 py-3.5">Type</th>
+                      <th className="px-4 sm:px-6 py-3.5">Material</th>
+                      <th className="px-4 sm:px-6 py-3.5">Coating</th>
+                      <th className="px-4 sm:px-6 py-3.5">Index</th>
+                      <th className="px-4 sm:px-6 py-3.5">Sphere Range</th>
+                      <th className="px-4 sm:px-6 py-3.5 text-right">Actions</th>
                     </>
                   )}
                   {(activeTab === "inventory" || activeTab === "low-stock") && (
                     <>
-                      <th className="px-6 py-3.5">SKU</th>
-                      <th className="px-6 py-3.5">Category</th>
-                      <th className="px-6 py-3.5">Details</th>
-                      <th className="px-6 py-3.5">Quantity</th>
-                      <th className="px-6 py-3.5">Reorder Level</th>
-                      <th className="px-6 py-3.5">Unit Cost</th>
-                      <th className="px-6 py-3.5">Selling Price</th>
-                      <th className="px-6 py-3.5 text-right">Actions</th>
+                      <th className="px-4 sm:px-6 py-3.5">SKU</th>
+                      <th className="px-4 sm:px-6 py-3.5">Category</th>
+                      <th className="px-4 sm:px-6 py-3.5">Details</th>
+                      <th className="px-4 sm:px-6 py-3.5">Quantity</th>
+                      <th className="px-4 sm:px-6 py-3.5">Reorder Level</th>
+                      <th className="px-4 sm:px-6 py-3.5">Unit Cost</th>
+                      <th className="px-4 sm:px-6 py-3.5">Selling Price</th>
+                      <th className="px-4 sm:px-6 py-3.5 text-right">Actions</th>
                     </>
                   )}
                 </tr>
@@ -485,15 +485,15 @@ export default function InventoryManager() {
                   <tr key={item.id} className="hover:bg-[#F2EAE1]/50 transition-colors">
                     {activeTab === "frames" && (
                       <>
-                        <td className="px-6 py-4">
+                        <td className="px-4 sm:px-6 py-4">
                           <div className="font-bold text-stone-900">{item.brand}</div>
                           <div className="text-xs text-stone-500">{item.model_number}</div>
                         </td>
-                        <td className="px-6 py-4">{item.color || "-"}</td>
-                        <td className="px-6 py-4 capitalize">{item.frame_type || "-"}</td>
-                        <td className="px-6 py-4">{item.material || "-"}</td>
-                        <td className="px-6 py-4 capitalize">{item.gender || "unisex"}</td>
-                        <td className="px-6 py-4 text-right">
+                        <td className="px-4 sm:px-6 py-4">{item.color || "-"}</td>
+                        <td className="px-4 sm:px-6 py-4 capitalize">{item.frame_type || "-"}</td>
+                        <td className="px-4 sm:px-6 py-4">{item.material || "-"}</td>
+                        <td className="px-4 sm:px-6 py-4 capitalize">{item.gender || "unisex"}</td>
+                        <td className="px-4 sm:px-6 py-4 text-right">
                           <DeleteButton onClick={() => handleDelete(item.id, "frames")} />
                         </td>
                       </>
@@ -501,17 +501,17 @@ export default function InventoryManager() {
 
                     {activeTab === "lenses" && (
                       <>
-                        <td className="px-6 py-4 font-bold text-stone-900">{item.brand}</td>
-                        <td className="px-6 py-4">{item.lens_type}</td>
-                        <td className="px-6 py-4">{item.material}</td>
-                        <td className="px-6 py-4">{item.coating || "-"}</td>
-                        <td className="px-6 py-4">{item.index_value || "-"}</td>
-                        <td className="px-6 py-4">
+                        <td className="px-4 sm:px-6 py-4 font-bold text-stone-900">{item.brand}</td>
+                        <td className="px-4 sm:px-6 py-4">{item.lens_type}</td>
+                        <td className="px-4 sm:px-6 py-4">{item.material}</td>
+                        <td className="px-4 sm:px-6 py-4">{item.coating || "-"}</td>
+                        <td className="px-4 sm:px-6 py-4">{item.index_value || "-"}</td>
+                        <td className="px-4 sm:px-6 py-4">
                           {item.min_sphere && item.max_sphere
                             ? `${item.min_sphere} to ${item.max_sphere}`
                             : "-"}
                         </td>
-                        <td className="px-6 py-4 text-right">
+                        <td className="px-4 sm:px-6 py-4 text-right">
                           <DeleteButton onClick={() => handleDelete(item.id, "lenses")} />
                         </td>
                       </>
@@ -519,21 +519,21 @@ export default function InventoryManager() {
 
                     {(activeTab === "inventory" || activeTab === "low-stock") && (
                       <>
-                        <td className="px-6 py-4">
+                        <td className="px-4 sm:px-6 py-4">
                           <span className="font-mono font-bold text-stone-900">{item.sku}</span>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-4 sm:px-6 py-4">
                           <span className="inline-flex items-center gap-1.5 text-xs font-medium text-stone-700 bg-[#E8DDD0] px-2.5 py-1 rounded-full capitalize">
                             <Layers className="w-3 h-3 text-[#8B1E42]" />
                             {item.category}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-stone-700">
+                        <td className="px-4 sm:px-6 py-4 text-stone-700">
                           {item.frame && `${item.frame.brand} ${item.frame.model_number}`}
                           {item.lens && `${item.lens.brand} ${item.lens.lens_type}`}
                           {!item.frame && !item.lens && "Accessory"}
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-4 sm:px-6 py-4">
                           <span
                             className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
                               Number(item.quantity) <= Number(item.reorder_level)
@@ -547,12 +547,12 @@ export default function InventoryManager() {
                             {Number(item.quantity).toLocaleString()}
                           </span>
                         </td>
-                        <td className="px-6 py-4">{Number(item.reorder_level).toLocaleString()}</td>
-                        <td className="px-6 py-4 text-stone-600">{formatCurrency(item.unit_cost)}</td>
-                        <td className="px-6 py-4 font-semibold text-stone-900">
+                        <td className="px-4 sm:px-6 py-4">{Number(item.reorder_level).toLocaleString()}</td>
+                        <td className="px-4 sm:px-6 py-4 text-stone-600">{formatCurrency(item.unit_cost)}</td>
+                        <td className="px-4 sm:px-6 py-4 font-semibold text-stone-900">
                           {formatCurrency(item.selling_price)}
                         </td>
-                        <td className="px-6 py-4 text-right whitespace-nowrap">
+                        <td className="px-4 sm:px-6 py-4 text-right whitespace-nowrap">
                           <button
                             onClick={() => {
                               setSelectedItem(item);
@@ -902,7 +902,7 @@ export default function InventoryManager() {
 
 function StatCard({ title, value, icon, accent }) {
   return (
-    <div className="bg-[#F8F3EC] border border-[#DCD0C0] p-5 rounded-2xl shadow-sm space-y-3">
+    <div className="bg-[#F8F3EC] border border-[#DCD0C0] p-4 sm:p-5 rounded-2xl shadow-sm space-y-3">
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold uppercase tracking-wider text-stone-500">{title}</span>
         <div className="p-2.5 bg-[#F2EAE1] rounded-xl border border-[#E3D8CC]">{icon}</div>
@@ -928,7 +928,7 @@ function DeleteButton({ onClick }) {
 function ModalLayer({ children }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/40 backdrop-blur-sm">
-      <div className="bg-[#F8F3EC] border border-[#DCD0C0] rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-6 relative max-h-[90vh] overflow-y-auto">
+      <div className="bg-[#F8F3EC] border border-[#DCD0C0] rounded-2xl max-w-xl w-full p-4 sm:p-6 shadow-2xl space-y-6 relative max-h-[90vh] overflow-y-auto">
         {children}
       </div>
     </div>
@@ -939,7 +939,7 @@ function ModalHeader({ title, subtitle, onClose }) {
   return (
     <div className="flex items-start justify-between gap-4">
       <div>
-        <h3 className="text-lg font-bold text-stone-900">{title}</h3>
+        <h3 className="text-base sm:text-lg font-bold text-stone-900">{title}</h3>
         <p className="text-xs text-stone-500 mt-0.5">{subtitle}</p>
       </div>
       <button

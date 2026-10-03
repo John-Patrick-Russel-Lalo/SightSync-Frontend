@@ -226,10 +226,10 @@ export default function AdminDashboard() {
           {activeTab === "analytics" && <Analytics onNavigate={setActiveTab} />}
 
           {activeTab === "users" && (
-            <div className="space-y-8 max-w-6xl mx-auto p-2">
+            <div className="space-y-6 sm:space-y-8 max-w-6xl mx-auto">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <h2 className="text-2xl font-bold text-stone-900">System Dashboard</h2>
+                  <h2 className="text-xl sm:text-2xl font-bold text-stone-900">System Dashboard</h2>
                   <p className="text-sm text-stone-600">
                     Overview of all active database user accounts, roles, and privileges.
                   </p>
@@ -264,9 +264,9 @@ export default function AdminDashboard() {
               </div>
 
               <section className="bg-[#F8F3EC] border border-[#DCD0C0] rounded-2xl shadow-sm overflow-hidden">
-                <div className="p-5 border-b border-[#EBE3D8] flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#FAF7F2]">
+                <div className="p-4 sm:p-5 border-b border-[#EBE3D8] flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#FAF7F2]">
                   <div>
-                    <h3 className="text-lg font-bold text-stone-900">User Directory</h3>
+                    <h3 className="text-base sm:text-lg font-bold text-stone-900">User Directory</h3>
                     <p className="text-xs text-stone-500 mt-0.5">
                       {filteredUsers.length} record{filteredUsers.length === 1 ? "" : "s"} loaded
                     </p>
@@ -300,12 +300,12 @@ export default function AdminDashboard() {
 
                 <div className="overflow-x-auto">
                   {loading ? (
-                    <div className="p-16 flex items-center justify-center gap-3 text-stone-500">
+                    <div className="p-8 sm:p-16 flex items-center justify-center gap-3 text-stone-500">
                       <Loader2 className="w-6 h-6 animate-spin text-[#8B1E42]" />
                       <span className="text-sm font-medium">Fetching user records...</span>
                     </div>
                   ) : error ? (
-                    <div className="p-10 text-center bg-rose-50/50">
+                    <div className="p-6 sm:p-10 text-center bg-rose-50/50">
                       <AlertCircle className="w-6 h-6 mx-auto text-rose-600" />
                       <p className="mt-2 font-semibold text-rose-800">Failed to load data</p>
                       <p className="text-xs text-stone-600 mt-1">{error}</p>
@@ -317,20 +317,20 @@ export default function AdminDashboard() {
                       </button>
                     </div>
                   ) : (
-                    <table className="w-full text-left text-sm text-stone-700">
+                    <table className="w-full min-w-[640px] text-left text-sm text-stone-700">
                       <thead className="bg-[#F2EAE1]/80 text-xs uppercase text-stone-500 tracking-wider border-b border-[#EBE3D8] font-semibold">
                         <tr>
-                          <th className="px-6 py-3.5">User</th>
-                          <th className="px-6 py-3.5">Provider</th>
-                          <th className="px-6 py-3.5">Role</th>
-                          <th className="px-6 py-3.5">Status</th>
+                          <th className="px-4 sm:px-6 py-3.5">User</th>
+                          <th className="px-4 sm:px-6 py-3.5">Provider</th>
+                          <th className="px-4 sm:px-6 py-3.5">Role</th>
+                          <th className="px-4 sm:px-6 py-3.5">Status</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-[#EBE3D8]">
                         {filteredUsers.length > 0 ? (
                           filteredUsers.map((u) => (
                             <tr key={u.id} className="hover:bg-[#F2EAE1]/50 transition-colors">
-                              <td className="px-6 py-4">
+                              <td className="px-4 sm:px-6 py-4">
                                 <div className="flex items-center gap-3">
                                   {u.avatar_url ? (
                                     <img
@@ -354,11 +354,11 @@ export default function AdminDashboard() {
                                 </div>
                               </td>
 
-                              <td className="px-6 py-4">
+                              <td className="px-4 sm:px-6 py-4">
                                 {renderProviderBadge(u.provider)}
                               </td>
 
-                              <td className="px-6 py-4">
+                              <td className="px-4 sm:px-6 py-4">
                                 <select
                                   value={u.role || "patient"}
                                   onChange={(e) => initiateRoleChange(u, e.target.value)}
@@ -370,14 +370,14 @@ export default function AdminDashboard() {
                                 </select>
                               </td>
 
-                              <td className="px-6 py-4">
+                              <td className="px-4 sm:px-6 py-4">
                                 <StatusBadge status={u.status} />
                               </td>
                             </tr>
                           ))
                         ) : (
                           <tr>
-                            <td colSpan="4" className="px-6 py-14 text-center text-stone-500">
+                            <td colSpan="4" className="px-4 sm:px-6 py-10 sm:py-14 text-center text-stone-500">
                               <Users className="w-8 h-8 mx-auto text-stone-300" />
                               <p className="mt-3 text-sm font-medium">No records found.</p>
                               <p className="text-xs text-stone-400 mt-1">Try a different filter or clear your search.</p>
@@ -412,7 +412,7 @@ export default function AdminDashboard() {
       {/* Custom Confirmation Modal */}
       {roleChangeModal.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/40 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[#F8F3EC] border border-[#DCD0C0] rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-6 relative">
+          <div className="bg-[#F8F3EC] border border-[#DCD0C0] rounded-2xl max-w-md w-full p-4 sm:p-6 shadow-2xl space-y-6 relative">
             <button
               onClick={closeRoleModal}
               className="absolute top-4 right-4 text-stone-400 hover:text-stone-700 p-1.5 rounded-xl hover:bg-[#EBE3D8] transition"
@@ -425,7 +425,7 @@ export default function AdminDashboard() {
                 <AlertTriangle className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-stone-900">Confirm Role Change</h3>
+                <h3 className="text-base sm:text-lg font-bold text-stone-900">Confirm Role Change</h3>
                 <p className="text-xs text-stone-500">System privilege adjustment</p>
               </div>
             </div>
@@ -506,7 +506,7 @@ function StatusBadge({ status }) {
 
 function StatCard({ title, value, icon, trend }) {
   return (
-    <div className="bg-[#F8F3EC] border border-[#DCD0C0] p-5 rounded-2xl shadow-sm space-y-3">
+    <div className="bg-[#F8F3EC] border border-[#DCD0C0] p-4 sm:p-5 rounded-2xl shadow-sm space-y-3">
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold uppercase tracking-wider text-stone-500">{title}</span>
         <div className="p-2.5 bg-[#F2EAE1] rounded-xl border border-[#E3D8CC]">{icon}</div>
@@ -527,7 +527,7 @@ function DoctorSchedulePage({ users }) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-stone-900">Doctor Schedules</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-stone-900">Doctor Schedules</h2>
           <p className="text-sm text-stone-600">Manage duty shifts and consultation availability for medical staff.</p>
         </div>
       </div>
@@ -535,7 +535,7 @@ function DoctorSchedulePage({ users }) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {doctors.length > 0 ? (
           doctors.map((doc) => (
-            <div key={doc.id} className="bg-[#F8F3EC] border border-[#DCD0C0] rounded-2xl p-5 space-y-4 shadow-sm">
+            <div key={doc.id} className="bg-[#F8F3EC] border border-[#DCD0C0] rounded-2xl p-4 sm:p-5 space-y-4 shadow-sm">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-cyan-100 flex items-center justify-center text-cyan-800 font-bold border border-cyan-200">
                   <Stethoscope className="w-5 h-5" />
@@ -559,7 +559,7 @@ function DoctorSchedulePage({ users }) {
             </div>
           ))
         ) : (
-          <div className="col-span-2 bg-[#F8F3EC] border border-[#DCD0C0] rounded-2xl p-6 text-center text-stone-500">
+          <div className="md:col-span-2 bg-[#F8F3EC] border border-[#DCD0C0] rounded-2xl p-4 sm:p-6 text-center text-stone-500">
             No active doctor accounts assigned in system.
           </div>
         )}

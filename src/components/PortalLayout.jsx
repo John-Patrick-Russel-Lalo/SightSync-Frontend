@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
-import { Bell, Settings, LogOut, X, Menu } from "lucide-react";
+import { Bell, Settings, LogOut, X, Menu, WifiOff } from "lucide-react";
 import LogoutConfirmModal from "./LogoutConfirmModal";
+import { useNotifications } from "../context/NotificationContext";
 import { parseWallClock } from "../utils/dateTime";
 
-const DEFAULT_NOTIFICATIONS = [
-  
-];
+const DEFAULT_NOTIFICATIONS = [];
 
 // Notification timestamps are timezone-less wall clock values from the API.
 // Plain text (e.g. "12:30 PM") is kept as-is for backwards compatibility.
@@ -36,26 +35,17 @@ export default function PortalLayout({
 }) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [readIds, setReadIds] = useState([]);
-  const [serverNotifications, setServerNotifications] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const API_URL = import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500";
-
-  useEffect(() => {
-    if (user && user.id) {
-      fetch(`${API_URL}/notifications`, { credentials: "include" })
-        .then(res => res.json())
-        .then(data => {
-            if(Array.isArray(data)) {
-                setServerNotifications(data);
-                const reads = data.filter(n => n.is_read).map(n => n.id);
-                setReadIds(reads);
-            }
-        })
-        .catch(err => console.error("Failed to fetch notifications", err));
-    }
-  }, [user, API_URL]);
+  const {
+    notifications: liveNotifications,
+    unreadCount,
+    connected,
+    toast,
+    dismissToast,
+    markRead,
+    markAllRead,
+  } = useNotifications();
 
   useEffect(() => {
     const onKeyDown = (e) => {
@@ -86,26 +76,16 @@ export default function PortalLayout({
     };
   }, [sidebarOpen]);
 
-  const displayNotifications = (user && user.id && serverNotifications.length > 0) ? serverNotifications : notifications;
-  const unread = displayNotifications.length - readIds.length;
+  // The socket-backed list wins; the `notifications` prop stays as a fallback.
+  const isLive = liveNotifications.length > 0;
+  const displayNotifications = isLive ? liveNotifications : notifications;
+  const unread = isLive
+    ? unreadCount
+    : displayNotifications.filter((n) => !n.is_read).length;
 
   const displayName =
     user?.display_name || user?.name || user?.username || "Portal User";
   const role = user?.role || "user";
-
-  const markAllRead = async () => {
-    setReadIds(displayNotifications.map((n) => n.id));
-    if (user && user.id) {
-      try {
-        await fetch(`${API_URL}/notifications/mark-all-read`, {
-            method: 'PATCH',
-            credentials: "include"
-        });
-      } catch (err) {
-        console.error("Failed to mark all as read", err);
-      }
-    }
-  };
 
   const handleNavClick = (id) => {
     onTabChange(id);
@@ -169,9 +149,12 @@ export default function PortalLayout({
             <button
               onClick={() => setShowNotifications((v) => !v)}
               className="relative p-2 text-stone-600 hover:text-stone-900 rounded-xl hover:bg-[#E2D6C7] transition"
-              title="Notifications"
+              title={connected ? "Notifications (live)" : "Notifications (reconnecting…)"}
             >
               <Bell className="w-5 h-5" />
+              {!connected && (
+                <span className="absolute -bottom-0.5 -left-0.5 w-2 h-2 rounded-full bg-amber-500 ring-2 ring-[#EDE3D8]" />
+              )}
               {unread > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 rounded-full bg-[#8B1E42] text-white text-[10px] font-bold flex items-center justify-center">
                   {unread}
@@ -193,8 +176,9 @@ export default function PortalLayout({
             {showNotifications && (
               <NotificationsDropdown
                 notifications={displayNotifications}
-                readIds={readIds}
                 onMarkAllRead={markAllRead}
+                onMarkRead={markRead}
+                connected={connected}
                 onClose={() => setShowNotifications(false)}
               />
             )}
@@ -203,6 +187,28 @@ export default function PortalLayout({
 
         <main className={`flex-1 px-4 py-6 sm:p-6 md:p-8 ${maxWidth} w-full mx-auto space-y-6 sm:space-y-8`}>{children}</main>
       </div>
+
+      {toast && (
+        <div className="fixed z-[60] bottom-4 right-4 left-4 sm:left-auto sm:w-96">
+          <div className="bg-[#F8F3EC] border border-[#DCD0C0] rounded-2xl shadow-2xl p-4 flex gap-3 items-start">
+            <span className="w-2 h-2 shrink-0 rounded-full mt-1.5 bg-[#8B1E42]" />
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-semibold text-stone-900">{toast.title}</div>
+              <p className="text-xs text-stone-500 mt-0.5">{toast.detail}</p>
+              <span className="text-[11px] font-medium text-stone-400 mt-1 inline-block">
+                {renderNotificationTime(toast.time)}
+              </span>
+            </div>
+            <button
+              onClick={dismissToast}
+              className="p-1 text-stone-400 hover:text-stone-700 rounded-lg hover:bg-[#EBE3D8] transition shrink-0"
+              title="Dismiss"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {showLogoutConfirm && (
         <LogoutConfirmModal
@@ -305,12 +311,27 @@ function SidebarContent({
   );
 }
 
-function NotificationsDropdown({ notifications, readIds, onMarkAllRead, onClose }) {
+function NotificationsDropdown({
+  notifications,
+  onMarkAllRead,
+  onMarkRead,
+  connected,
+  onClose,
+}) {
   return (
     <div className="absolute right-0 top-12 w-72 sm:w-80 bg-[#F8F3EC] border border-[#DCD0C0] rounded-2xl shadow-2xl overflow-hidden z-50">
       <div className="px-4 py-3 border-b border-[#EBE3D8] flex items-center justify-between bg-[#FAF7F2]">
         <h3 className="text-sm font-bold text-stone-900">Notifications</h3>
         <div className="flex items-center gap-2">
+          {!connected && (
+            <span
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-600"
+              title="Reconnecting to the realtime server"
+            >
+              <WifiOff className="w-3 h-3" />
+              Offline
+            </span>
+          )}
           <button
             onClick={onMarkAllRead}
             className="text-xs font-semibold text-[#8B1E42] hover:text-[#731836] transition"
@@ -329,11 +350,14 @@ function NotificationsDropdown({ notifications, readIds, onMarkAllRead, onClose 
       <ul className="max-h-80 overflow-y-auto divide-y divide-[#EBE3D8]">
         {notifications.length > 0 ? (
           notifications.map((n) => {
-            const isRead = readIds.includes(n.id);
+            const isRead = Boolean(n.is_read);
             return (
               <li
                 key={n.id}
-                className={`px-4 py-3.5 flex gap-3 ${isRead ? "" : "bg-[#8B1E42]/5"}`}
+                onClick={() => !isRead && onMarkRead?.(n.id)}
+                className={`px-4 py-3.5 flex gap-3 ${
+                  isRead ? "" : "bg-[#8B1E42]/5 cursor-pointer hover:bg-[#8B1E42]/10"
+                }`}
               >
                 <span
                   className={`w-2 h-2 shrink-0 rounded-full mt-1.5 ${

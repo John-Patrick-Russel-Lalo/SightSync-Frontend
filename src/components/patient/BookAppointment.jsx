@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Calendar,
   CalendarPlus,
@@ -8,10 +8,26 @@ import {
   AlertCircle,
   CheckCircle2,
   FileText,
+  Upload,
+  X,
+  ShieldCheck,
 } from "lucide-react";
 import { parseWallClock, toLocalDateString } from "../../utils/dateTime";
 
 const API_URL = import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500";
+
+const MAX_PAYMENT_PROOF_BYTES = 5 * 1024 * 1024;
+const ACCEPTED_PAYMENT_PROOF_TYPES = [
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+];
+
+function formatPeso(value) {
+  const amount = Number(value);
+  return Number.isFinite(amount) && amount > 0 ? `₱${amount.toFixed(2)}` : null;
+}
 
 export default function BookAppointment() {
   const [doctorList, setDoctorList] = useState([]);
@@ -21,8 +37,11 @@ export default function BookAppointment() {
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState("");
   const [notes, setNotes] = useState("");
+  const [paymentProof, setPaymentProof] = useState(null);
+  const [paymentProofPreview, setPaymentProofPreview] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [bookingMessage, setBookingMessage] = useState(null);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -79,6 +98,61 @@ export default function BookAppointment() {
     };
   }, [bookingDoctorId, bookingDateStr]);
 
+  const selectedDoctor = doctorList.find(
+    (doc) => String(doc.user_id) === String(bookingDoctorId)
+  );
+  const consultationFee = selectedDoctor?.consultation_fee;
+  const halfPaymentAmount = formatPeso(Number(consultationFee) / 2);
+
+  // Release the previous preview object URL so the blob is not leaked.
+  useEffect(() => {
+    return () => {
+      if (paymentProofPreview) URL.revokeObjectURL(paymentProofPreview);
+    };
+  }, [paymentProofPreview]);
+
+  function handlePaymentProofChange(e) {
+    const file = e.target.files?.[0];
+    setBookingMessage(null);
+
+    if (!file) {
+      setPaymentProof(null);
+      setPaymentProofPreview("");
+      return;
+    }
+
+    if (!ACCEPTED_PAYMENT_PROOF_TYPES.includes(file.type)) {
+      setPaymentProof(null);
+      setPaymentProofPreview("");
+      setBookingMessage({
+        type: "error",
+        text: "Payment proof must be a JPG, PNG, or WEBP image.",
+      });
+      e.target.value = "";
+      return;
+    }
+
+    if (file.size > MAX_PAYMENT_PROOF_BYTES) {
+      setPaymentProof(null);
+      setPaymentProofPreview("");
+      setBookingMessage({
+        type: "error",
+        text: "Payment proof must be 5MB or smaller.",
+      });
+      e.target.value = "";
+      return;
+    }
+
+    setPaymentProof(file);
+    setPaymentProofPreview(URL.createObjectURL(file));
+  }
+
+  function clearPaymentProof() {
+    setPaymentProof(null);
+    setPaymentProofPreview("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
   async function handleRequestAppointment(e) {
     e.preventDefault();
     setBookingMessage(null);
@@ -91,19 +165,29 @@ export default function BookAppointment() {
       setBookingMessage({ type: "error", text: "Please choose an available time slot." });
       return;
     }
+    if (!paymentProof) {
+      setBookingMessage({
+        type: "error",
+        text: "Please upload a photo or screenshot of your half-payment.",
+      });
+      return;
+    }
 
     setSubmitting(true);
     try {
+      // multipart/form-data is required for the payment proof image, so the
+      // Content-Type header is intentionally left to the browser.
+      const formData = new FormData();
+      formData.append("doctorId", String(Number(bookingDoctorId)));
+      formData.append("date", bookingDateStr);
+      formData.append("slot", selectedSlot);
+      if (notes) formData.append("notes", notes);
+      formData.append("paymentProof", paymentProof);
+
       const response = await fetch(`${API_URL}/appointments/patient`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({
-          doctorId: Number(bookingDoctorId),
-          date: bookingDateStr,
-          slot: selectedSlot,
-          notes: notes || undefined,
-        }),
+        body: formData,
       });
 
       const data = await response.json().catch(() => ({}));
@@ -114,10 +198,14 @@ export default function BookAppointment() {
 
       setBookingMessage({
         type: "success",
-        text: data.message || "Appointment request submitted successfully.",
+        text:
+          data.message ||
+          "Appointment request submitted. Your half-payment proof is now awaiting admin review.",
       });
       setNotes("");
       setSelectedSlot("");
+      setPaymentProof(null);
+      setPaymentProofPreview("");
 
       const slotsRes = await fetch(
         `${API_URL}/appointments/${bookingDoctorId}/${bookingDateStr}`,
@@ -144,7 +232,8 @@ export default function BookAppointment() {
         <div className="min-w-0">
           <h2 className="text-lg sm:text-xl font-bold text-[#3D2E28]">Request Appointment</h2>
           <p className="text-sm text-[#8B7562] mt-0.5">
-            Pick an available doctor and choose a time slot to submit your appointment request.
+            Pick an available doctor, choose a time slot, and attach your half-payment
+            receipt. An admin reviews the payment before approving your request.
           </p>
         </div>
       </div>
@@ -265,10 +354,75 @@ export default function BookAppointment() {
             </div>
           </div>
 
-          <div className="md:col-span-2 lg:col-span-4 flex items-center justify-end">
+          <div className="md:col-span-2 lg:col-span-4">
+            <label className="block text-xs font-semibold text-[#8B7562] uppercase tracking-wider mb-2">
+              Half-Payment Proof{" "}
+              <span className="text-[#8B1E42] normal-case tracking-normal">(required)</span>
+            </label>
+
+            {paymentProof && paymentProofPreview ? (
+              <div className="flex items-center gap-3 p-3 bg-[#EDE3D8] border border-[#DCCFBF] rounded-xl">
+                <img
+                  src={paymentProofPreview}
+                  alt="Payment proof preview"
+                  className="w-14 h-14 object-cover rounded-lg border border-[#DCCFBF] shrink-0"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-[#3D2E28] truncate">
+                    {paymentProof.name}
+                  </p>
+                  <p className="text-xs text-[#8B7562]">
+                    {(paymentProof.size / 1024).toFixed(0)} KB
+                    {halfPaymentAmount ? ` — ${halfPaymentAmount} half-payment` : ""}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={clearPaymentProof}
+                  className="p-1.5 text-[#8B7562] hover:text-[#8B1E42] hover:bg-[#DCCFBF]/50 rounded-lg transition shrink-0"
+                  title="Remove payment proof"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <label className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3.5 bg-[#EDE3D8]/60 border border-dashed border-[#DCCFBF] rounded-xl cursor-pointer hover:border-[#8B1E42]/50 transition">
+                <span className="flex items-center gap-2.5 text-sm text-[#8B7562]">
+                  <Upload className="w-4 h-4 text-[#8B1E42] shrink-0" />
+                  <span className="font-medium text-[#3D2E28]">
+                    {halfPaymentAmount
+                      ? `Upload your ${halfPaymentAmount} payment receipt`
+                      : "Upload your payment receipt"}
+                  </span>
+                </span>
+                <span className="text-xs text-[#8B7562]">JPG, PNG or WEBP · max 5MB</span>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handlePaymentProofChange}
+                  className="hidden"
+                />
+              </label>
+            )}
+
+            <p className="flex items-start gap-1.5 text-xs text-[#8B7562] mt-2">
+              <ShieldCheck className="w-3.5 h-3.5 shrink-0 mt-0.5 text-[#52795A]" />
+              <span>
+                An admin reviews your payment proof before approving the appointment.
+              </span>
+            </p>
+          </div>
+
+          <div className="md:col-span-2 lg:col-span-4 flex items-center justify-end gap-3">
+            <span className="text-xs text-[#8B7562]">
+              {halfPaymentAmount
+                ? `Half of ${formatPeso(consultationFee)} = ${halfPaymentAmount}`
+                : "Select a doctor to see the amount due."}
+            </span>
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || !paymentProof}
               className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-[#8B1E42] text-white text-sm font-semibold hover:bg-[#731836] disabled:opacity-50 transition shadow-sm w-full sm:w-auto"
             >
               {submitting ? (

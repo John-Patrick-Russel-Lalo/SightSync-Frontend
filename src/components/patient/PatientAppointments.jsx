@@ -11,24 +11,19 @@ import {
 } from "lucide-react";
 import MonthCalendar from "./MonthCalendar";
 import BookAppointment from "./BookAppointment";
+import {
+  formatWallClockDate,
+  formatWallClockTime,
+  parseWallClock,
+  toLocalDateString,
+} from "../../utils/dateTime";
 
 const API_URL = import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500";
 
-function formatDateString(date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
 function formatAppointment(app) {
-  const startDate = app.start_time ? new Date(app.start_time) : null;
+  const startDate = parseWallClock(app.start_time);
   const formattedTime = startDate
-    ? startDate.toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      })
+    ? formatWallClockTime(startDate, { hour: "2-digit", minute: "2-digit" })
     : "N/A";
 
   return {
@@ -37,7 +32,7 @@ function formatAppointment(app) {
     time: formattedTime,
     type: app.notes || "General Consultation",
     status: app.status || "pending",
-    rawDate: startDate ? formatDateString(startDate) : "",
+    rawDate: startDate ? toLocalDateString(startDate) : "",
     startTime: app.start_time,
     endTime: app.end_time,
     notes: app.notes,
@@ -157,7 +152,7 @@ export default function PatientAppointments() {
     };
   }, []);
 
-  const selectedDateStr = formatDateString(selectedDate);
+  const selectedDateStr = toLocalDateString(selectedDate);
   const todaysAppointments = appointments.filter(
     (app) => !app.rawDate || app.rawDate === selectedDateStr
   );
@@ -165,13 +160,14 @@ export default function PatientAppointments() {
   const scheduledDays = appointments
     .filter((app) => {
       if (!app.rawDate) return false;
-      const appDate = new Date(app.rawDate + "T00:00:00");
+      const appDate = parseWallClock(app.rawDate);
       return (
+        appDate &&
         appDate.getMonth() === selectedDate.getMonth() &&
         appDate.getFullYear() === selectedDate.getFullYear()
       );
     })
-    .map((app) => new Date(app.rawDate + "T00:00:00").getDate());
+    .map((app) => parseWallClock(app.rawDate).getDate());
 
   const pendingCount = appointments.filter(
     (app) => (app.status || "").toLowerCase() === "pending"
@@ -305,12 +301,7 @@ export default function PatientAppointments() {
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-[#5B4B41]">
                         <span className="flex items-center gap-1.5">
                           <Calendar className="w-4 h-4 text-[#8B1E42] shrink-0" />
-                          {new Date(app.rawDate + "T00:00:00").toLocaleDateString("en-US", {
-                            weekday: "short",
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          })}
+                          {formatWallClockDate(app.rawDate)}
                         </span>
                         <span className="flex items-center gap-1.5 font-mono text-[#8B1E42] font-semibold">
                           <Clock className="w-4 h-4 shrink-0" />

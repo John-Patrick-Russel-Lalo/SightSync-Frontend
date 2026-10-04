@@ -24,6 +24,7 @@ import {
   Clock,
   Banknote,
 } from "lucide-react";
+import { toLocalDateString, wallClockTimeMs } from "../../utils/dateTime";
 
 const API_URL = import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500";
 
@@ -91,12 +92,7 @@ const formatNumber = (n) => Number(n || 0).toLocaleString();
 
 const formatPercent = (n) => `${(Number(n) || 0).toFixed(1)}%`;
 
-const toLocalISO = (d) => {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-};
+const toLocalISO = toLocalDateString;
 
 const fetchJson = async (url) => {
   const res = await fetch(url, {
@@ -119,7 +115,7 @@ const toList = (body, key) => {
 
 const toTime = (value) => {
   if (!value) return null;
-  const time = new Date(value).getTime();
+  const time = wallClockTimeMs(value);
   return Number.isNaN(time) ? null : time;
 };
 

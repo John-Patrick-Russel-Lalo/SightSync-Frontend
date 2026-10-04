@@ -1,10 +1,25 @@
 import { useState, useEffect } from "react";
 import { Bell, Settings, LogOut, X, Menu } from "lucide-react";
 import LogoutConfirmModal from "./LogoutConfirmModal";
+import { parseWallClock } from "../utils/dateTime";
 
 const DEFAULT_NOTIFICATIONS = [
   
 ];
+
+// Notification timestamps are timezone-less wall clock values from the API.
+// Plain text (e.g. "12:30 PM") is kept as-is for backwards compatibility.
+function renderNotificationTime(value) {
+  if (!value) return "Just now";
+
+  const parsed = parseWallClock(value);
+  if (!parsed) return String(value);
+
+  return parsed.toLocaleString("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
 
 export default function PortalLayout({
   title,
@@ -329,7 +344,7 @@ function NotificationsDropdown({ notifications, readIds, onMarkAllRead, onClose 
                   <div className="text-sm font-semibold text-stone-900">{n.title}</div>
                   <p className="text-xs text-stone-500 mt-0.5">{n.detail}</p>
                   <span className="text-[11px] font-medium text-stone-400 mt-1 inline-block">
-                    {n.time ? (new Date(n.time).toString() !== 'Invalid Date' && typeof n.time === 'string' && n.time.includes('T') ? new Date(n.time).toLocaleString() : n.time) : "Just now"}
+                    {renderNotificationTime(n.time)}
                   </span>
                 </div>
               </li>

@@ -1045,6 +1045,12 @@ import {
   LayoutDashboard,
   Archive,
 } from "lucide-react";
+import {
+  formatWallClockDate,
+  formatWallClockTime,
+  parseWallClock,
+  toLocalDateString,
+} from "../utils/dateTime";
 import PortalLayout from "./PortalLayout";
 import SettingsPage from "./SettingsPage";
 import AppointmentArchive from "./AppointmentArchive";
@@ -1070,14 +1076,6 @@ export default function DoctorDashboard() {
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [profileError, setProfileError] = useState(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
-
-  // Helper function to format JS Date into YYYY-MM-DD string
-  const formatDateString = (date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
 
   // 1. Fetch appointments using GET /appointments/:doctorId
   const fetchDoctorAppointments = useCallback(async () => {
@@ -1115,10 +1113,10 @@ export default function DoctorDashboard() {
       const rawAppointments = data.appointments || [];
 
       const formatted = rawAppointments.map((app) => {
-        const startDate = app.start_time ? new Date(app.start_time) : null;
-        
-        const formattedTime = startDate 
-          ? startDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true })
+        const startDate = parseWallClock(app.start_time);
+
+        const formattedTime = startDate
+          ? formatWallClockTime(startDate, { hour: "2-digit", minute: "2-digit" })
           : "N/A";
 
         return {
@@ -1128,7 +1126,7 @@ export default function DoctorDashboard() {
           time: formattedTime,
           type: app.notes || "General Consultation",
           status: app.status || "scheduled",
-          rawDate: startDate ? formatDateString(startDate) : "",
+          rawDate: startDate ? toLocalDateString(startDate) : "",
           startTime: app.start_time,
           endTime: app.end_time,
           notes: app.notes,
@@ -1187,7 +1185,7 @@ export default function DoctorDashboard() {
   };
 
   // 3. Filter appointments matching selected calendar date
-  const selectedDateStr = formatDateString(selectedDate);
+  const selectedDateStr = toLocalDateString(selectedDate);
   const todaysAppointments = appointments.filter((app) => {
     if (!app.rawDate) return true;
     return app.rawDate === selectedDateStr;
@@ -1196,13 +1194,14 @@ export default function DoctorDashboard() {
   const scheduledDays = appointments
     .filter((app) => {
       if (!app.rawDate) return false;
-      const appDate = new Date(app.rawDate);
+      const appDate = parseWallClock(app.rawDate);
       return (
+        appDate &&
         appDate.getMonth() === selectedDate.getMonth() &&
         appDate.getFullYear() === selectedDate.getFullYear()
       );
     })
-    .map((app) => new Date(app.rawDate).getDate());
+    .map((app) => parseWallClock(app.rawDate).getDate());
 
   // Search Filter
   const filteredAppointments = todaysAppointments.filter(
@@ -1456,7 +1455,7 @@ export default function DoctorDashboard() {
                     <span className="text-[#8B7562] block">Date of Birth</span>
                     <span className="font-semibold text-[#3D2E28]">
                       {patientProfile.date_of_birth
-                        ? new Date(patientProfile.date_of_birth).toLocaleDateString()
+                        ? formatWallClockDate(patientProfile.date_of_birth)
                         : "N/A"}
                     </span>
                   </div>

@@ -14,7 +14,12 @@ import {
   X,
   Filter,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Eye,
+  ShieldCheck,
+  ShieldX,
+  Banknote,
+  Maximize2
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext"; // Adjust path if necessary
 import {
@@ -63,6 +68,15 @@ export default function ScheduleAppointmentPage() {
   const [loadingAppointments, setLoadingAppointments] = useState(false);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
+
+  // Payment Proof Review States
+  const [paymentProofViewer, setPaymentProofViewer] = useState(null); // { appointment, url }
+  const [loadingProof, setLoadingProof] = useState(false);
+  const [proofError, setProofError] = useState(null);
+  const [proofFullscreen, setProofFullscreen] = useState(false);
+  const [verifyingPaymentId, setVerifyingPaymentId] = useState(null);
+  const [rejectingPaymentId, setRejectingPaymentId] = useState(null);
+  const [rejectionReason, setRejectionReason] = useState("");
 
   // Auto-set patient if logged-in user is a patient
   useEffect(() => {
@@ -113,6 +127,82 @@ export default function ScheduleAppointmentPage() {
         return "bg-blue-100 text-blue-800 border-blue-200";
     }
   };
+
+  // Helper function to return proper payment-proof badge color styles
+  const getPaymentBadgeStyle = (paymentStatus) => {
+    switch ((paymentStatus || "unsubmitted").toLowerCase()) {
+      case "verified":
+        return "bg-emerald-100 text-emerald-800 border-emerald-200";
+      case "submitted":
+        return "bg-amber-100 text-amber-800 border-amber-200";
+      case "rejected":
+        return "bg-rose-100 text-rose-800 border-rose-200";
+      case "unsubmitted":
+      default:
+        return "bg-stone-200 text-stone-600 border-stone-300";
+    }
+  };
+
+  const PAYMENT_STATUS_LABELS = {
+    verified: "Payment Verified",
+    submitted: "Payment Awaiting Review",
+    rejected: "Payment Rejected",
+    unsubmitted: "No Proof Required",
+  };
+
+  const formatPeso = (value) => {
+    const amount = Number(value);
+    return Number.isFinite(amount) && amount > 0 ? `₱${amount.toFixed(2)}` : "—";
+  };
+
+  // Revoke the proof object URL when the viewer closes or the page unmounts.
+  useEffect(() => {
+    return () => {
+      if (paymentProofViewer?.url) URL.revokeObjectURL(paymentProofViewer.url);
+    };
+  }, [paymentProofViewer]);
+
+  // Loads the private payment-proof image through the authenticated endpoint
+  // and shows it in the review modal.
+  const openPaymentProof = async (appointment) => {
+    setProofError(null);
+    setProofFullscreen(false);
+    setLoadingProof(true);
+    setPaymentProofViewer({ appointment, url: "" });
+
+    try {
+      const res = await fetchWithCredentials(
+        `${API_APPOINTMENTS_BASE}/${appointment.id}/payment-proof`
+      );
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to load the payment proof.");
+      }
+
+      const blob = await res.blob();
+      setPaymentProofViewer({ appointment, url: URL.createObjectURL(blob) });
+    } catch (err) {
+      setProofError(err.message);
+      setPaymentProofViewer(null);
+    } finally {
+      setLoadingProof(false);
+    }
+  };
+
+  const closePaymentProof = () => {
+    if (paymentProofViewer?.url) URL.revokeObjectURL(paymentProofViewer.url);
+    setPaymentProofViewer(null);
+    setProofFullscreen(false);
+    setProofError(null);
+    setRejectingPaymentId(null);
+    setRejectionReason("");
+  };
+
+  // Approve stays locked until the proof is verified, so this is the gate that
+  // actually decides whether an admin can move the appointment to 'scheduled'.
+  const isPaymentCleared = (apt) =>
+    !apt.has_payment_proof || (apt.payment_status || "").toLowerCase() === "verified";
 
   // 1. Fetch Doctors and Patients lists on mount
   useEffect(() => {
@@ -188,6 +278,40 @@ export default function ScheduleAppointmentPage() {
       console.error("Failed to fetch appointments:", err);
     } finally {
       setLoadingAppointments(false);
+    }
+  };
+
+  // Records the admin's decision on a submitted half-payment proof. Verifying
+  // unlocks the Approve button; sending it back blocks approval again.
+  const handleVerifyPayment = async (appointmentId, action, reason) => {
+    setError(null);
+    setSuccessMessage(null);
+    setVerifyingPaymentId(appointmentId);
+
+    try {
+      const res = await fetchWithCredentials(
+        `${API_APPOINTMENTS_BASE}/${appointmentId}/payment-verification`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ action, reason }),
+        }
+      );
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to update the payment proof.");
+      }
+
+      setSuccessMessage(data.message);
+      closePaymentProof();
+      fetchExistingAppointments();
+    } catch (err) {
+      setError(err.message);
+      setProofError(err.message);
+    } finally {
+      setVerifyingPaymentId(null);
+      setRejectingPaymentId(null);
+      setRejectionReason("");
     }
   };
 
@@ -859,6 +983,54 @@ const appointmentDatesSet = useMemo(() => {
                         </p>
                       )}
                     </div>
+
+                    {/* Half-Payment Proof Review */}
+                    <div className="pt-2 mt-2 border-t border-[#E3D8CC] space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <span
+                          className={`capitalize px-2 py-0.5 rounded border text-[11px] font-semibold ${getPaymentBadgeStyle(
+                            apt.payment_status
+                          )}`}
+                        >
+                          {PAYMENT_STATUS_LABELS[
+                            (apt.payment_status || "unsubmitted").toLowerCase()
+                          ] || apt.payment_status}
+                        </span>
+                        {apt.has_payment_proof && (
+                          <button
+                            type="button"
+                            onClick={() => openPaymentProof(apt)}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold text-[#8B1E42] bg-[#8B1E42]/10 hover:bg-[#8B1E42]/20 rounded-lg transition"
+                          >
+                            <Eye className="w-3 h-3" />
+                            View Proof
+                          </button>
+                        )}
+                      </div>
+
+                      {apt.has_payment_proof && (
+                        <p className="text-[11px] text-stone-600">
+                          Half-payment received:{" "}
+                          <strong className="text-stone-900">
+                            {formatPeso(apt.payment_amount)}
+                          </strong>
+                          {Number(apt.consultation_fee) > 0 && (
+                            <span className="text-stone-500">
+                              {" "}
+                              of {formatPeso(apt.consultation_fee)} fee
+                            </span>
+                          )}
+                        </p>
+                      )}
+
+                      {apt.payment_status === "rejected" &&
+                        apt.payment_rejection_reason && (
+                          <p className="text-[11px] text-rose-700 bg-rose-50 border border-rose-100 rounded-lg px-2 py-1">
+                            {apt.payment_rejection_reason}
+                          </p>
+                        )}
+                    </div>
+
                     {user?.role === "admin" && apt.status === "pending" && (
                       <div className="pt-2 flex items-center justify-end gap-2 border-t border-[#E3D8CC] mt-2">
                         <button
@@ -871,9 +1043,22 @@ const appointmentDatesSet = useMemo(() => {
                         <button
                           type="button"
                           onClick={() => handleUpdateStatus(apt.id, 'scheduled')}
-                          className="px-3 py-1 text-[11px] font-semibold text-white bg-[#8B1E42] hover:bg-[#731836] rounded-lg shadow-sm transition"
+                          disabled={!isPaymentCleared(apt)}
+                          title={
+                            isPaymentCleared(apt)
+                              ? "Approve this appointment"
+                              : "Review and verify the patient's half-payment proof before approving"
+                          }
+                          className="px-3 py-1 text-[11px] font-semibold text-white bg-[#8B1E42] hover:bg-[#731836] disabled:bg-stone-300 disabled:text-stone-500 disabled:cursor-not-allowed rounded-lg shadow-sm transition inline-flex items-center gap-1.5"
                         >
-                          Approve
+                          {isPaymentCleared(apt) ? (
+                            "Approve"
+                          ) : (
+                            <>
+                              <ShieldCheck className="w-3 h-3" />
+                              Verify Payment First
+                            </>
+                          )}
                         </button>
                       </div>
                     )}
@@ -884,6 +1069,172 @@ const appointmentDatesSet = useMemo(() => {
           </div>
         )}
       </div>
+
+      {/* Payment Proof Review Modal */}
+      {paymentProofViewer && (
+        <div
+          className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${
+            proofFullscreen ? "bg-black/90" : "bg-black/60"
+          }`}
+          onClick={closePaymentProof}
+          role="presentation"
+        >
+          <div
+            className={`bg-[#F8F3EC] border border-[#DCD0C0] rounded-2xl shadow-xl overflow-hidden flex flex-col ${
+              proofFullscreen ? "w-full h-full max-w-5xl" : "w-full max-w-lg max-h-[90vh]"
+            }`}
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Payment proof review"
+          >
+            <div className="flex items-start justify-between gap-3 px-4 sm:px-5 py-3 border-b border-[#EBE3D8]">
+              <div className="min-w-0">
+                <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
+                  <Banknote className="w-4 h-4 text-[#8B1E42] shrink-0" />
+                  Half-Payment Proof — Appt #{paymentProofViewer.appointment.id}
+                </h3>
+                <p className="text-xs text-stone-500 mt-0.5">
+                  Patient ID: {paymentProofViewer.appointment.patient_id} • Doctor ID:{" "}
+                  {paymentProofViewer.appointment.doctor_id} •{" "}
+                  <strong className="text-stone-700">
+                    {formatPeso(paymentProofViewer.appointment.payment_amount)} of{" "}
+                    {formatPeso(paymentProofViewer.appointment.consultation_fee)}
+                  </strong>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closePaymentProof}
+                className="p-1.5 text-stone-500 hover:text-stone-800 hover:bg-[#EBE3D8] rounded-lg transition shrink-0"
+                title="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div
+              className={`flex-1 overflow-auto bg-[#EDE3D8] ${
+                proofFullscreen ? "p-2" : "p-4"
+              } flex items-center justify-center`}
+            >
+              {loadingProof ? (
+                <div className="flex items-center gap-2 text-xs text-stone-600 py-10">
+                  <Loader2 className="w-4 h-4 animate-spin text-[#8B1E42]" />
+                  Loading payment proof...
+                </div>
+              ) : proofError ? (
+                <div className="flex items-center gap-2 text-xs text-rose-700 py-10 text-center">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{proofError}</span>
+                </div>
+              ) : (
+                <img
+                  src={paymentProofViewer.url}
+                  alt={`Payment proof for appointment ${paymentProofViewer.appointment.id}`}
+                  className={`max-w-full rounded-lg border border-[#DCD0C0] bg-white ${
+                    proofFullscreen
+                      ? "max-h-full object-contain"
+                      : "max-h-[55vh] object-contain"
+                  }`}
+                />
+              )}
+            </div>
+
+            <div className="px-4 sm:px-5 py-3 border-t border-[#EBE3D8] space-y-3">
+              {paymentProofViewer.url && (
+                <button
+                  type="button"
+                  onClick={() => setProofFullscreen((v) => !v)}
+                  className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#8B1E42] hover:underline"
+                >
+                  <Maximize2 className="w-3 h-3" />
+                  {proofFullscreen ? "Fit to window" : "Expand"}
+                </button>
+              )}
+
+              {proofError && user?.role === "admin" && (
+                <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
+                  The image could not be loaded, but the appointment was not blocked.
+                  Verification can still be recorded manually.
+                </p>
+              )}
+
+              {user?.role === "admin" && rejectingPaymentId === paymentProofViewer.appointment.id ? (
+                <div className="space-y-2">
+                  <label className="block text-xs font-semibold text-stone-700">
+                    Reason for rejection
+                  </label>
+                  <textarea
+                    rows="2"
+                    value={rejectionReason}
+                    onChange={(e) => setRejectionReason(e.target.value)}
+                    placeholder="e.g. Receipt is unreadable / amount does not match."
+                    className="w-full px-3 py-2 bg-[#F2EAE1] border border-[#DCD0C0] rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-[#8B1E42]/20 focus:border-[#8B1E42]"
+                  />
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRejectingPaymentId(null);
+                        setRejectionReason("");
+                      }}
+                      className="px-3 py-1.5 text-[11px] font-semibold text-stone-600 bg-[#EDE3D8] hover:bg-[#E2D6C7] rounded-lg transition"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleVerifyPayment(
+                          paymentProofViewer.appointment.id,
+                          "reject",
+                          rejectionReason
+                        )
+                      }
+                      disabled={verifyingPaymentId === paymentProofViewer.appointment.id}
+                      className="px-3 py-1.5 text-[11px] font-semibold text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-50 rounded-lg transition"
+                    >
+                      {verifyingPaymentId === paymentProofViewer.appointment.id
+                        ? "Sending back..."
+                        : "Send Back to Patient"}
+                    </button>
+                  </div>
+                </div>
+              ) : user?.role === "admin" ? (
+                <div className="flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRejectionReason("");
+                      setRejectingPaymentId(paymentProofViewer.appointment.id);
+                    }}
+                    className="px-3 py-1.5 text-[11px] font-semibold text-rose-700 bg-rose-100 hover:bg-rose-200 rounded-lg transition inline-flex items-center gap-1.5"
+                  >
+                    <ShieldX className="w-3 h-3" />
+                    Send Back
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleVerifyPayment(paymentProofViewer.appointment.id, "verify")
+                    }
+                    disabled={verifyingPaymentId === paymentProofViewer.appointment.id}
+                    className="px-3 py-1.5 text-[11px] font-semibold text-white bg-[#8B1E42] hover:bg-[#731836] disabled:opacity-50 rounded-lg shadow-sm transition inline-flex items-center gap-1.5"
+                  >
+                    {verifyingPaymentId === paymentProofViewer.appointment.id ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <ShieldCheck className="w-3 h-3" />
+                    )}
+                    Verify Payment
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

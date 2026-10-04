@@ -8,6 +8,10 @@ import {
   Check,
   Hourglass,
   FileText,
+  Banknote,
+  ShieldCheck,
+  ShieldAlert,
+  ShieldX,
 } from "lucide-react";
 import MonthCalendar from "./MonthCalendar";
 import BookAppointment from "./BookAppointment";
@@ -19,6 +23,11 @@ import {
 } from "../../utils/dateTime";
 
 const API_URL = import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500";
+
+function formatPeso(value) {
+  const amount = Number(value);
+  return Number.isFinite(amount) && amount > 0 ? `₱${amount.toFixed(2)}` : null;
+}
 
 function formatAppointment(app) {
   const startDate = parseWallClock(app.start_time);
@@ -36,6 +45,11 @@ function formatAppointment(app) {
     startTime: app.start_time,
     endTime: app.end_time,
     notes: app.notes,
+    paymentStatus: app.payment_status || "unsubmitted",
+    paymentAmount: app.payment_amount,
+    consultationFee: app.consultation_fee,
+    hasPaymentProof: Boolean(app.has_payment_proof),
+    paymentRejectionReason: app.payment_rejection_reason,
   };
 }
 
@@ -106,6 +120,35 @@ function getStatusStyle(status) {
         badge: "bg-[#DCCFBF]/40 text-[#8B7562] border border-[#DCCFBF]",
         dot: "bg-[#8B7562]",
         label: s || "Scheduled",
+      };
+  }
+}
+
+function getPaymentStyle(paymentStatus) {
+  switch ((paymentStatus || "").toLowerCase()) {
+    case "verified":
+      return {
+        badge: "bg-[#52795A]/10 text-[#52795A] border border-[#52795A]/25",
+        icon: ShieldCheck,
+        label: "Payment Verified",
+      };
+    case "submitted":
+      return {
+        badge: "bg-[#C08A3E]/10 text-[#C08A3E] border border-[#C08A3E]/25",
+        icon: Hourglass,
+        label: "Payment Under Review",
+      };
+    case "rejected":
+      return {
+        badge: "bg-[#8B1E42]/10 text-[#8B1E42] border border-[#8B1E42]/25",
+        icon: ShieldX,
+        label: "Payment Sent Back",
+      };
+    default:
+      return {
+        badge: "bg-[#DCCFBF]/40 text-[#8B7562] border border-[#DCCFBF]",
+        icon: ShieldAlert,
+        label: "No Payment Proof",
       };
   }
 }
@@ -277,6 +320,9 @@ export default function PatientAppointments() {
             <div className="space-y-3">
               {filteredAppointments.map((app) => {
                 const style = getStatusStyle(app.status);
+                const paymentStyle = getPaymentStyle(app.paymentStatus);
+                const PaymentIcon = paymentStyle.icon;
+                const halfAmount = formatPeso(app.paymentAmount);
                 return (
                   <div
                     key={app.id}
@@ -313,6 +359,33 @@ export default function PatientAppointments() {
                           <FileText className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                           <span className="italic truncate">"{app.notes}"</span>
                         </div>
+                      )}
+                      {app.hasPaymentProof && (
+                        <div className="flex items-start gap-2 text-xs pt-0.5">
+                          <span
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-semibold ${paymentStyle.badge}`}
+                          >
+                            <PaymentIcon className="w-3.5 h-3.5 shrink-0" />
+                            {paymentStyle.label}
+                          </span>
+                          {halfAmount && (
+                            <span className="flex items-center gap-1.5 text-[#5B4B41] self-center">
+                              <Banknote className="w-3.5 h-3.5 text-[#8B7562] shrink-0" />
+                              {halfAmount}
+                              {Number(app.consultationFee) > 0 && (
+                                <span className="text-[#8B7562]">
+                                  of {formatPeso(app.consultationFee)}
+                                </span>
+                              )}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      {app.paymentStatus === "rejected" && app.paymentRejectionReason && (
+                        <p className="text-xs text-[#8B1E42] bg-[#8B1E42]/10 border border-[#8B1E42]/25 rounded-xl px-3 py-2">
+                          {app.paymentRejectionReason} Please book again with a clearer
+                          receipt.
+                        </p>
                       )}
                     </div>
                   </div>

@@ -202,7 +202,6 @@ export default function AdminDashboard() {
     { id: "inventory", label: "Inventory Management", icon: Package },
     { id: "pos", label: "Point of Sale", icon: ShoppingCart },
     { id: "schedules", label: "Schedule Management", icon: Calendar },
-    { id: "doctor-schedules", label: "Doctor Schedules", icon: Clock },
     { id: "archive", label: "Appointment Archive", icon: Archive },
     { id: "settings", label: "Settings", icon: Settings, sectionEnd: true },
   ];
@@ -404,7 +403,7 @@ export default function AdminDashboard() {
 
           {activeTab === "inventory" && <InventoryManager />}
           {activeTab === "pos" && <PosManager />}
-          {activeTab === "doctor-schedules" && <DoctorSchedulePage users={users} />}
+          {/* {activeTab === "doctor-schedules" && <DoctorSchedulePage users={users} />} */}
           {activeTab === "archive" && <AppointmentArchive scope="all" users={users} />}
         </>
       )}
@@ -519,51 +518,3 @@ function StatCard({ title, value, icon, trend }) {
 
 
 
-
-function DoctorSchedulePage({ users }) {
-  const doctors = users.filter((u) => u.role === "doctor");
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-stone-900">Doctor Schedules</h2>
-          <p className="text-sm text-stone-600">Manage duty shifts and consultation availability for medical staff.</p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {doctors.length > 0 ? (
-          doctors.map((doc) => (
-            <div key={doc.id} className="bg-[#F8F3EC] border border-[#DCD0C0] rounded-2xl p-4 sm:p-5 space-y-4 shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-cyan-100 flex items-center justify-center text-cyan-800 font-bold border border-cyan-200">
-                  <Stethoscope className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-stone-900">{doc.display_name || doc.username}</h3>
-                  <span className="text-xs text-stone-500">{doc.email || "No email available"}</span>
-                </div>
-              </div>
-
-              <div className="bg-[#F2EAE1] p-3 rounded-xl space-y-2 border border-[#E3D8CC] text-xs">
-                <div className="flex justify-between text-stone-700">
-                  <span className="font-medium">Shift Hours:</span>
-                  <span>08:00 AM - 04:00 PM</span>
-                </div>
-                <div className="flex justify-between text-stone-700">
-                  <span className="font-medium">Duty Days:</span>
-                  <span>Mon - Fri</span>
-                </div>
-              </div>
-            </div>
-          ))
-        ) : (
-          <div className="md:col-span-2 bg-[#F8F3EC] border border-[#DCD0C0] rounded-2xl p-4 sm:p-6 text-center text-stone-500">
-            No active doctor accounts assigned in system.
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}

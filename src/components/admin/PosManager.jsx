@@ -24,6 +24,7 @@ import {
   Layers,
   CheckCircle2,
 } from "lucide-react";
+import { parseWallClock, toLocalDateString } from "../../utils/dateTime";
 
 const API_POS_URL = `${import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500"}/pos`;
 const API_INVENTORY_URL = `${import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500"}/inventory`;
@@ -51,12 +52,7 @@ const CATEGORY_FILTERS = [
 
 const round2 = (n) => Math.round(n * 100) / 100;
 
-const toLocalISO = (d) => {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-};
+const toLocalISO = toLocalDateString;
 
 const defaultStartDate = () => {
   const d = new Date();
@@ -370,8 +366,14 @@ export default function PosManager() {
   };
 
   const formatCurrency = (n) => `₱${Number(n || 0).toFixed(2)}`;
-  const formatDate = (d) =>
-    new Date(d).toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" });
+  const formatDate = (d) => {
+    const parsed = parseWallClock(d);
+    if (!parsed) return "N/A";
+    return parsed.toLocaleString("en-PH", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+  };
 
   return (
     <div className="space-y-6 sm:space-y-8 max-w-6xl mx-auto">

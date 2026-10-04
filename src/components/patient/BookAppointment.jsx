@@ -9,15 +9,9 @@ import {
   CheckCircle2,
   FileText,
 } from "lucide-react";
+import { parseWallClock, toLocalDateString } from "../../utils/dateTime";
 
 const API_URL = import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500";
-
-function formatDateString(date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
 
 export default function BookAppointment() {
   const [doctorList, setDoctorList] = useState([]);
@@ -54,7 +48,7 @@ export default function BookAppointment() {
     };
   }, []);
 
-  const bookingDateStr = formatDateString(bookingDate);
+  const bookingDateStr = toLocalDateString(bookingDate);
 
   useEffect(() => {
     if (!bookingDoctorId) {
@@ -212,9 +206,9 @@ export default function BookAppointment() {
               <input
                 type="date"
                 value={bookingDateStr}
-                min={formatDateString(new Date())}
+                min={toLocalDateString(new Date())}
                 onChange={(e) => {
-                  setBookingDate(new Date(e.target.value + "T00:00:00"));
+                  setBookingDate(parseWallClock(e.target.value) ?? new Date());
                   if (bookingDoctorId) setLoadingSlots(true);
                   setSelectedSlot("");
                 }}

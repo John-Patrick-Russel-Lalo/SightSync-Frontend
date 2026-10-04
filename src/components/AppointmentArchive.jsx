@@ -10,26 +10,9 @@ import {
   Stethoscope,
   FileText,
 } from "lucide-react";
+import { formatWallClockDateTime } from "../utils/dateTime";
 
 const API_URL = import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500";
-
-function formatDateTime(value) {
-  if (!value) return "N/A";
-  const date = new Date(value);
-  if (isNaN(date.getTime())) return "N/A";
-  const formattedDate = date.toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-  const formattedTime = date.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  });
-  return `${formattedDate} • ${formattedTime}`;
-}
 
 function getStatusBadgeStyle(status) {
   const s = (status || "").toLowerCase();
@@ -155,7 +138,7 @@ export default function AppointmentArchive({ scope = "my", users = null }) {
         doctorName.toLowerCase().includes(term) ||
         patientName.toLowerCase().includes(term) ||
         (a.notes && a.notes.toLowerCase().includes(term)) ||
-        formatDateTime(a.start_time || a.archived_at).toLowerCase().includes(term);
+        formatWallClockDateTime(a.start_time || a.archived_at).toLowerCase().includes(term);
       return matchesStatus && matchesSearch;
     });
   }, [archives, searchTerm, statusFilter, doctorNames, nameMaps]);
@@ -272,7 +255,7 @@ export default function AppointmentArchive({ scope = "my", users = null }) {
                   <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-2 text-stone-800 font-medium">
                       <Calendar className="w-4 h-4 text-[#8B1E42] shrink-0" />
-                      {formatDateTime(a.start_time)}
+                      {formatWallClockDateTime(a.start_time)}
                     </div>
                   </td>
                   {isAllScope && (
@@ -325,7 +308,7 @@ export default function AppointmentArchive({ scope = "my", users = null }) {
                   <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-2 text-stone-600">
                       <Clock className="w-3.5 h-3.5 text-stone-400 shrink-0" />
-                      {formatDateTime(a.archived_at)}
+                      {formatWallClockDateTime(a.archived_at)}
                     </div>
                   </td>
                 </tr>

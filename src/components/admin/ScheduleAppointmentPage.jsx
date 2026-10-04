@@ -17,6 +17,12 @@ import {
   ChevronRight
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext"; // Adjust path if necessary
+import {
+  formatWallClockDateTime,
+  toLocalDateString,
+  toLocalDateStringFromValue,
+  wallClockTimeMs,
+} from "../../utils/dateTime";
 
 const API_APPOINTMENTS_BASE = `${import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500"}/appointments`;
 const API_USERS_URL = `${import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500"}/users`;
@@ -34,7 +40,7 @@ export default function ScheduleAppointmentPage() {
   const [selectedDoctorId, setSelectedDoctorId] = useState("");
   const [selectedPatient, setSelectedPatient] = useState(null); // Selected patient object
   const [selectedDate, setSelectedDate] = useState(
-    new Date().toISOString().split("T")[0]
+    toLocalDateString(new Date())
   );
   const [selectedSlot, setSelectedSlot] = useState("");
   const [notes, setNotes] = useState("");
@@ -89,32 +95,6 @@ export default function ScheduleAppointmentPage() {
         ...options.headers,
       },
     });
-  };
-
-  // Helper function to format date and time into easy human-readable text
-  const formatDateTime = (dateStr) => {
-    if (!dateStr) return "N/A";
-    const dateObj = new Date(dateStr);
-    if (isNaN(dateObj.getTime())) return dateStr;
-
-    const formattedDate = dateObj.toLocaleDateString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-
-    const formattedTime = dateObj.toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    });
-
-    if (formattedTime === "12:00 AM" && !dateStr.includes("T") && !dateStr.includes(":")) {
-      return formattedDate;
-    }
-
-    return `${formattedDate} • ${formattedTime}`;
   };
 
   // Helper function to return proper status badge color styles
@@ -214,16 +194,6 @@ export default function ScheduleAppointmentPage() {
   const getPatientDisplayName = (p) =>
     p?.display_name || p?.username || p?.email || `Patient ID: ${p?.id}`;
 
-   // Local YYYY-MM-DD Helper
-const getLocalDateString = (dateObj) => {
-  const d = new Date(dateObj);
-  if (isNaN(d.getTime())) return "";
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
-
   const filteredPatients = patients.filter((p) => {
     const term = patientSearchTerm.toLowerCase();
     const nameMatch = getPatientDisplayName(p).toLowerCase().includes(term);
@@ -248,7 +218,7 @@ const getLocalDateString = (dateObj) => {
       .filter((apt) => {
         const term = apptSearchTerm.toLowerCase();
         const rawDate = apt.start_time || apt.date;
-        const readableTimeStr = formatDateTime(rawDate).toLowerCase();
+        const readableTimeStr = formatWallClockDateTime(rawDate).toLowerCase();
 
         const matchesSearch =
           String(apt.id).includes(term) ||
@@ -265,15 +235,15 @@ const getLocalDateString = (dateObj) => {
         // Calendar date filter matching
         let matchesCalendarDate = true;
         if (selectedCalendarDate && rawDate) {
-  const aptDateISO = getLocalDateString(rawDate);
-  matchesCalendarDate = aptDateISO === selectedCalendarDate;
-}
+          matchesCalendarDate =
+            toLocalDateStringFromValue(rawDate) === selectedCalendarDate;
+        }
 
         return matchesSearch && matchesStatus && matchesCalendarDate;
       })
       .sort((a, b) => {
-        const timeA = new Date(a.start_time || a.date).getTime();
-        const timeB = new Date(b.start_time || b.date).getTime();
+        const timeA = wallClockTimeMs(a.start_time || a.date);
+        const timeB = wallClockTimeMs(b.start_time || b.date);
 
         const diffA = isNaN(timeA) ? Infinity : Math.abs(timeA - now);
         const diffB = isNaN(timeB) ? Infinity : Math.abs(timeB - now);
@@ -328,8 +298,7 @@ const appointmentDatesSet = useMemo(() => {
   appointments.forEach((apt) => {
     const rawDate = apt.start_time || apt.date;
     if (rawDate) {
-      const dateISO = getLocalDateString(rawDate);
-      set.add(dateISO);
+      set.add(toLocalDateStringFromValue(rawDate));
     }
   });
   return set;
@@ -500,7 +469,7 @@ const appointmentDatesSet = useMemo(() => {
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
                   required
-                  min={new Date().toISOString().split("T")[0]}
+                  min={toLocalDateString(new Date())}
                   className="w-full pl-10 pr-4 py-2 bg-[#F2EAE1] border border-[#DCD0C0] rounded-xl text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[#8B1E42]/20 focus:border-[#8B1E42]"
                 />
               </div>
@@ -762,8 +731,8 @@ const appointmentDatesSet = useMemo(() => {
               {/* Calendar Grid */}
               <div className="grid grid-cols-7 gap-1 text-center text-xs">
                 {calendarGrid.map((item, idx) => {
-                  const isoDate = getLocalDateString(item.date);
-                const todayISO = getLocalDateString(new Date());
+                  const isoDate = toLocalDateString(item.date);
+                const todayISO = toLocalDateString(new Date());
                   const isToday = isoDate === todayISO;
                   const isSelected = selectedCalendarDate === isoDate;
                   const hasAppointments = appointmentDatesSet.has(isoDate);
@@ -881,7 +850,7 @@ const appointmentDatesSet = useMemo(() => {
 
                       <p className="flex items-center gap-1.5 text-stone-900 font-semibold pt-0.5">
                         <Clock className="w-3.5 h-3.5 text-[#8B1E42] shrink-0" />
-                        <span>{formatDateTime(apt.start_time || apt.date)}</span>
+                        <span>{formatWallClockDateTime(apt.start_time || apt.date)}</span>
                       </p>
 
                       {apt.notes && (

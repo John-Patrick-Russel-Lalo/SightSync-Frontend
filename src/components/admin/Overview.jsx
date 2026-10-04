@@ -17,6 +17,11 @@ import {
   Clock,
   ArrowRight,
 } from "lucide-react";
+import {
+  parseWallClock,
+  toLocalDateStringFromValue,
+  wallClockTimeMs,
+} from "../../utils/dateTime";
 
 const API_URL = import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500";
 
@@ -34,16 +39,7 @@ const formatCurrency = (n) =>
 
 const formatNumber = (n) => Number(n || 0).toLocaleString();
 
-const toLocalISO = (d) => {
-  if (!d) return "";
-  const dateObj = d instanceof Date ? d : new Date(d);
-  if (isNaN(dateObj.getTime())) return "";
-
-  const y = dateObj.getFullYear();
-  const m = String(dateObj.getMonth() + 1).padStart(2, "0");
-  const day = String(dateObj.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-};
+const toLocalISO = toLocalDateStringFromValue;
 
 const fetchJson = async (url) => {
   const res = await fetch(url, {
@@ -177,15 +173,15 @@ export default function Overview({ onNavigate }) {
   }, [loadOverview, reloadKey]);
 
   const rangeBounds = useMemo(() => {
-    const start = new Date(`${startDate}T00:00:00`);
-    const end = new Date(`${endDate}T23:59:59.999`);
-    return { start: start.getTime(), end: end.getTime() };
+    const start = parseWallClock(`${startDate}T00:00:00`);
+    const end = parseWallClock(`${endDate}T23:59:59.999`);
+    return { start: start?.getTime(), end: end?.getTime() };
   }, [startDate, endDate]);
 
   const isInRange = useCallback(
     (value) => {
       if (!value) return false;
-      const time = new Date(value).getTime();
+      const time = wallClockTimeMs(value);
       if (Number.isNaN(time)) return false;
       return time >= rangeBounds.start && time <= rangeBounds.end;
     },
@@ -210,7 +206,7 @@ export default function Overview({ onNavigate }) {
       ],
       top: newPatients
         .slice()
-        .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+        .sort((a, b) => wallClockTimeMs(b.created_at) - wallClockTimeMs(a.created_at))
         .slice(0, 3)
         .map((p) => ({
           id: p.id,
@@ -324,7 +320,7 @@ export default function Overview({ onNavigate }) {
       ],
       top: completed
         .slice()
-        .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+        .sort((a, b) => wallClockTimeMs(b.created_at) - wallClockTimeMs(a.created_at))
         .slice(0, 3)
         .map((s) => ({
           id: s.id,
@@ -346,7 +342,7 @@ export default function Overview({ onNavigate }) {
       (a) => toLocalISO(a.start_time || a.date) === todayISO
     );
     const upcoming = appointments.filter((a) => {
-      const time = new Date(a.start_time || a.date).getTime();
+      const time = wallClockTimeMs(a.start_time || a.date);
       return (
         !Number.isNaN(time) &&
         time >= now &&
@@ -394,7 +390,7 @@ export default function Overview({ onNavigate }) {
       ],
       top: rangeArchives
         .slice()
-        .sort((a, b) => new Date(b.archived_at || 0) - new Date(a.archived_at || 0))
+        .sort((a, b) => wallClockTimeMs(b.archived_at) - wallClockTimeMs(a.archived_at))
         .slice(0, 3)
         .map((a) => ({
           id: a.id,

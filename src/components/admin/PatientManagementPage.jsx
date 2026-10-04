@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { User, X, Loader2, Edit3, AlertCircle, Search, Calendar, Clock } from "lucide-react";
+import { formatWallClockDate, formatWallClockDateTime } from "../../utils/dateTime";
 
 const API_PATIENTS_URL = `${import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500"}/patients`;
 const API_APPOINTMENTS_URL = `${import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500"}/appointments`;
@@ -560,7 +561,7 @@ export default function PatientManagementPage({ users: initialUsers, fetchWithCr
                         <span className="text-stone-500 font-medium">Date of Birth</span>
                         <p className="font-semibold text-stone-800">
                           {patientDetails.date_of_birth
-                            ? new Date(patientDetails.date_of_birth).toLocaleDateString()
+                            ? formatWallClockDate(patientDetails.date_of_birth)
                             : "N/A"}
                         </p>
                       </div>
@@ -613,11 +614,10 @@ export default function PatientManagementPage({ users: initialUsers, fetchWithCr
                                 <div className="flex items-center gap-2 font-medium text-stone-800">
                                   <Clock className="w-3.5 h-3.5 text-stone-400 shrink-0" />
                                   <span>
-                                    {appt.appointment_date
-                                      ? new Date(appt.appointment_date).toLocaleString([], {
-                                          dateStyle: "medium",
-                                          timeStyle: "short",
-                                        })
+                                    {appt.start_time || appt.appointment_date
+                                      ? formatWallClockDateTime(
+                                          appt.start_time || appt.appointment_date
+                                        )
                                       : "Date unavailable"}
                                   </span>
                                 </div>

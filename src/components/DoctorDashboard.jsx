@@ -1044,10 +1044,13 @@ import {
   Settings,
   LayoutDashboard,
   Archive,
+  Mail,
+  Save,
 } from "lucide-react";
 import {
   formatWallClockDate,
   formatWallClockTime,
+  formatWallClockDateTime,
   parseWallClock,
   toLocalDateString,
 } from "../utils/dateTime";
@@ -1056,6 +1059,62 @@ import SettingsPage from "./SettingsPage";
 import AppointmentArchive from "./AppointmentArchive";
 
 const API_URL = import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500";
+
+const modalInputClass =
+  "w-full px-3 py-2 bg-[#F8F3EC] border border-[#DCCFBF] rounded-xl text-xs text-[#3D2E28] placeholder-[#8B7562] focus:outline-none focus:border-[#8B1E42]";
+
+// Canonical appointment statuses -> display label.
+const STATUS_LABELS = {
+  pending: "Pending",
+  scheduled: "Scheduled",
+  in_consultation: "In Consultation",
+  completed: "Completed",
+  cancelled: "Cancelled",
+  declined: "Declined",
+  no_show: "No Show",
+};
+
+const statusLabel = (status) => STATUS_LABELS[status] || status || "Unknown";
+
+// Badge + dot styling per status for the appointments table and modal.
+function getStatusBadge(status) {
+  switch (status) {
+    case "completed":
+      return {
+        chip: "bg-[#52795A]/10 text-[#52795A] border border-[#52795A]/25",
+        dot: "bg-[#52795A]",
+      };
+    case "in_consultation":
+      return {
+        chip: "bg-[#C08A3E]/10 text-[#C08A3E] border border-[#C08A3E]/25",
+        dot: "bg-[#C08A3E]",
+      };
+    case "cancelled":
+    case "declined":
+    case "no_show":
+      return {
+        chip: "bg-[#8B1E42]/10 text-[#8B1E42] border border-[#8B1E42]/25",
+        dot: "bg-[#8B1E42]",
+      };
+    default:
+      return {
+        chip: "bg-[#DCCFBF]/40 text-[#8B7562] border border-[#DCCFBF]",
+        dot: "bg-[#8B7562]",
+      };
+  }
+}
+
+function StatusBadge({ status, className = "" }) {
+  const style = getStatusBadge(status);
+  return (
+    <span
+      className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold capitalize ${style.chip} ${className}`}
+    >
+      <span className={`w-2 h-2 rounded-full ${style.dot}`} />
+      {statusLabel(status)}
+    </span>
+  );
+}
 
 export default function DoctorDashboard() {
   const { user, logout } = useAuth();
@@ -1076,6 +1135,24 @@ export default function DoctorDashboard() {
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [profileError, setProfileError] = useState(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [statusError, setStatusError] = useState(null);
+
+  // Re-render trigger so the doctor's In Session / Available pill follows the
+  // clock even when no appointments change.
+  const [nowTick, setNowTick] = useState(() => Date.now());
+
+  // Patient Profile Edit State
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({});
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileNotice, setProfileNotice] = useState(null);
+
+  // Consultation Notes State
+  const [patientNotes, setPatientNotes] = useState([]);
+  const [loadingNotes, setLoadingNotes] = useState(false);
+  const [notesError, setNotesError] = useState(null);
+  const [noteText, setNoteText] = useState("");
+  const [savingNote, setSavingNote] = useState(false);
 
   // 1. Fetch appointments using GET /appointments/:doctorId
   const fetchDoctorAppointments = useCallback(async () => {
@@ -1145,11 +1222,73 @@ export default function DoctorDashboard() {
     fetchDoctorAppointments();
   }, [fetchDoctorAppointments]);
 
-  // 2. Fetch Patient Profile when Options modal opens
+  // Keep the clock fresh so the In Session / Available pill flips on time.
+  useEffect(() => {
+    const timer = setInterval(() => setNowTick(Date.now()), 30000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // The doctor is "In Session" while a consultation is marked ongoing today, or
+  // when the current time falls inside a scheduled appointment's window;
+  // otherwise they are "Available".
+  const doctorStatus = (() => {
+    const now = nowTick;
+    const todayStr = toLocalDateString(new Date());
+    const inSession = appointments.some((app) => {
+      if (app.status === "in_consultation") {
+        return !app.rawDate || app.rawDate === todayStr;
+      }
+      if (app.status !== "scheduled") return false;
+      const start = parseWallClock(app.startTime);
+      const end = parseWallClock(app.endTime);
+      return start && end && now >= start.getTime() && now <= end.getTime();
+    });
+    return inSession ? "In Session" : "Available";
+  })();
+
+  // 2. Fetch Patient Profile & Consultation Notes when the modal opens
+  const fetchPatientNotes = useCallback(async (patientId) => {
+    setLoadingNotes(true);
+    setNotesError(null);
+
+    try {
+      const response = await fetch(`${API_URL}/appointments/patient/${patientId}/notes`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+
+      const resData = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(resData.error || resData.message || "Failed to load consultation notes.");
+      }
+
+      setPatientNotes(resData.notes || []);
+    } catch (err) {
+      console.error("Error fetching consultation notes:", err);
+      setPatientNotes([]);
+      setNotesError(err.message);
+    } finally {
+      setLoadingNotes(false);
+    }
+  }, []);
+
   const handleOpenOptions = async (app) => {
     setSelectedAppointment(app);
     setPatientProfile(null);
     setProfileError(null);
+    setProfileNotice(null);
+    setIsEditingProfile(false);
+    setProfileForm({});
+    setPatientNotes([]);
+    setNotesError(null);
+    setNoteText("");
+    setStatusError(null);
+
+    if (app.patientId) {
+      fetchPatientNotes(app.patientId);
+    }
 
     if (!app.patientId) return;
 
@@ -1184,7 +1323,119 @@ export default function DoctorDashboard() {
     }
   };
 
-  // 3. Filter appointments matching selected calendar date
+  const closeModal = () => {
+    setSelectedAppointment(null);
+    setPatientProfile(null);
+    setPatientNotes([]);
+    setNoteText("");
+    setIsEditingProfile(false);
+    setProfileNotice(null);
+    setStatusError(null);
+  };
+
+  // 3. Doctor edits the patient profile when the recorded data is inaccurate
+  const handleStartEditProfile = () => {
+    if (!patientProfile) return;
+
+    setProfileForm({
+      dateOfBirth: patientProfile.date_of_birth ? patientProfile.date_of_birth.split("T")[0] : "",
+      gender: patientProfile.gender || "",
+      phoneNumber: patientProfile.phone_number || "",
+      bloodType: patientProfile.blood_type || "",
+      emergencyContactName: patientProfile.emergency_contact_name || "",
+      emergencyContactPhone: patientProfile.emergency_contact_phone || "",
+      insuranceProvider: patientProfile.insurance_provider || "",
+      insurancePolicyNumber: patientProfile.insurance_policy_number || "",
+    });
+    setProfileNotice(null);
+    setIsEditingProfile(true);
+  };
+
+  const handleProfileFormChange = (e) => {
+    const { name, value } = e.target;
+    setProfileForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSaveProfile = async (e) => {
+    e.preventDefault();
+    setSavingProfile(true);
+    setProfileNotice(null);
+
+    try {
+      const response = await fetch(`${API_URL}/patients`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ id: patientProfile.user_id, ...profileForm }),
+      });
+
+      const resData = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(resData.message || resData.error || "Failed to save the patient profile.");
+      }
+
+      setPatientProfile((prev) => ({
+        ...prev,
+        date_of_birth: profileForm.dateOfBirth,
+        gender: profileForm.gender,
+        phone_number: profileForm.phoneNumber,
+        blood_type: profileForm.bloodType,
+        emergency_contact_name: profileForm.emergencyContactName,
+        emergency_contact_phone: profileForm.emergencyContactPhone,
+        insurance_provider: profileForm.insuranceProvider,
+        insurance_policy_number: profileForm.insurancePolicyNumber,
+      }));
+
+      setIsEditingProfile(false);
+      setProfileNotice({ type: "success", text: "Patient profile updated." });
+    } catch (err) {
+      setProfileNotice({ type: "error", text: err.message });
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  // 4. Consultation notes written by the doctor about the patient
+  const handleSaveNote = async (e) => {
+    e.preventDefault();
+
+    const trimmed = noteText.trim();
+    if (!trimmed || !selectedAppointment) return;
+
+    setSavingNote(true);
+    setNotesError(null);
+
+    try {
+      const response = await fetch(`${API_URL}/appointments/${selectedAppointment.id}/notes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ note: trimmed }),
+      });
+
+      const resData = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(resData.error || resData.message || "Failed to save the note.");
+      }
+
+      setPatientNotes((prev) => [
+        {
+          ...resData.note,
+          doctor_name: user?.name || user?.username || user?.email || "Doctor",
+        },
+        ...prev,
+      ]);
+      setNoteText("");
+    } catch (err) {
+      setNotesError(err.message);
+    } finally {
+      setSavingNote(false);
+    }
+  };
+
+  // 5. Filter appointments matching selected calendar date
   const selectedDateStr = toLocalDateString(selectedDate);
   const todaysAppointments = appointments.filter((app) => {
     if (!app.rawDate) return true;
@@ -1214,9 +1465,10 @@ export default function DoctorDashboard() {
   const handleUpdateAppointmentStatus = async (appointmentId, newStatus) => {
     try {
       setIsUpdatingStatus(true);
+      setStatusError(null);
 
-      const response = await fetch(`${API_URL}/appointments/${appointmentId}`, {
-        method: "PUT",
+      const response = await fetch(`${API_URL}/appointments/${appointmentId}/status`, {
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
@@ -1225,7 +1477,8 @@ export default function DoctorDashboard() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to update status on server.");
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to update status on server.");
       }
 
       setAppointments((prev) =>
@@ -1237,7 +1490,7 @@ export default function DoctorDashboard() {
       }
     } catch (err) {
       console.error("Error updating appointment status:", err);
-      alert("Could not update status. Please try again.");
+      setStatusError(err.message);
     } finally {
       setIsUpdatingStatus(false);
     }
@@ -1273,9 +1526,27 @@ export default function DoctorDashboard() {
             {/* Header Controls */}
             <div className="p-7 border-b border-[#DCCFBF] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h2 className="text-xl font-bold text-[#3D2E28]">
-                  Appointments for {selectedDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                </h2>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <h2 className="text-xl font-bold text-[#3D2E28]">
+                    Appointments for {selectedDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                  </h2>
+                  {user?.role === "doctor" && (
+                    <span
+                      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold border ${
+                        doctorStatus === "In Session"
+                          ? "bg-[#C08A3E]/10 text-[#C08A3E] border-[#C08A3E]/30"
+                          : "bg-[#52795A]/10 text-[#52795A] border-[#52795A]/30"
+                      }`}
+                    >
+                      <span
+                        className={`w-2 h-2 rounded-full ${
+                          doctorStatus === "In Session" ? "bg-[#C08A3E] animate-pulse" : "bg-[#52795A]"
+                        }`}
+                      />
+                      {doctorStatus === "In Session" ? "In Session" : "Available"}
+                    </span>
+                  )}
+                </div>
                 <p className="text-sm text-[#8B7562] mt-0.5">
                   Track patient queue, visit status, and medical history access.
                 </p>
@@ -1332,40 +1603,17 @@ export default function DoctorDashboard() {
                           </td>
                           <td className="px-7 py-5 text-[#5B4B41] font-medium">{app.type}</td>
                           <td className="px-7 py-5">
-                            <span
-                              className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold capitalize ${
-                                app.status === "Completed" || app.status === "completed"
-                                  ? "bg-[#52795A]/10 text-[#52795A] border border-[#52795A]/25"
-                                  : app.status === "In Consultation" || app.status === "in consultation"
-                                  ? "bg-[#C08A3E]/10 text-[#C08A3E] border border-[#C08A3E]/25"
-                                  : app.status === "cancelled"
-                                  ? "bg-[#8B1E42]/10 text-[#8B1E42] border border-[#8B1E42]/25"
-                                  : "bg-[#DCCFBF]/40 text-[#8B7562] border border-[#DCCFBF]"
-                              }`}
-                            >
-                              <span
-                                className={`w-2 h-2 rounded-full ${
-                                  app.status === "Completed" || app.status === "completed"
-                                    ? "bg-[#52795A]"
-                                    : app.status === "In Consultation" || app.status === "in consultation"
-                                    ? "bg-[#C08A3E]"
-                                    : app.status === "cancelled"
-                                    ? "bg-[#8B1E42]"
-                                    : "bg-[#8B7562]"
-                                }`}
-                              />
-                              {app.status}
-                            </span>
+                            <StatusBadge status={app.status} />
                           </td>
                           <td className="px-7 py-5 text-right">
                             <div className="flex items-center justify-end gap-3">
                               <button
                                 onClick={() => handleOpenOptions(app)}
                                 className="px-3 py-1.5 rounded-full text-xs font-semibold text-[#8B1E42] bg-[#8B1E42]/10 hover:bg-[#8B1E42] hover:text-white transition flex items-center gap-1.5"
-                                title="Manage Appointment"
+                                title="View patient profile, write notes, and manage this appointment"
                               >
-                                <Edit3 className="w-3.5 h-3.5" />
-                                Options
+                                <User className="w-3.5 h-3.5" />
+                                View Profile
                               </button>
                             </div>
                           </td>
@@ -1394,10 +1642,10 @@ export default function DoctorDashboard() {
         </div>
       )}
 
-      {/* Options Modal with Patient Profile */}
+      {/* Patient Profile / Appointment Modal */}
       {selectedAppointment && (
         <div className="fixed inset-0 z-50 bg-[#3D2E28]/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#F8F3EC] border border-[#DCCFBF] rounded-3xl max-w-lg w-full p-6 shadow-xl relative animate-in fade-in zoom-in duration-150">
+          <div className="bg-[#F8F3EC] border border-[#DCCFBF] rounded-3xl max-w-2xl w-full p-6 shadow-xl relative animate-in fade-in zoom-in duration-150 max-h-[90vh] overflow-y-auto">
             
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-[#DCCFBF] pb-4 mb-5">
@@ -1415,7 +1663,9 @@ export default function DoctorDashboard() {
                 )}
                 <div>
                   <h3 className="font-bold text-lg text-[#3D2E28]">
-                    {patientProfile?.username?.replace(/-/g, " ") || selectedAppointment.patientName}
+                    {patientProfile?.display_name ||
+                      patientProfile?.username?.replace(/-/g, " ") ||
+                      selectedAppointment.patientName}
                   </h3>
                   <span className="text-xs text-[#8B7562]">
                     Appointment #{selectedAppointment.id} • Patient #{selectedAppointment.patientId}
@@ -1423,17 +1673,32 @@ export default function DoctorDashboard() {
                 </div>
               </div>
               <button
-                onClick={() => {
-                  setSelectedAppointment(null);
-                  setPatientProfile(null);
-                }}
+                onClick={closeModal}
                 className="p-1.5 text-[#8B7562] hover:text-[#3D2E28] rounded-full hover:bg-[#EDE3D8] transition"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Profile Loading / Error / Data View */}
+            {/* Profile Save Notice */}
+            {profileNotice && (
+              <div
+                className={`p-3 rounded-2xl text-xs mb-5 flex items-center gap-2 ${
+                  profileNotice.type === "success"
+                    ? "bg-[#52795A]/10 border border-[#52795A]/25 text-[#52795A]"
+                    : "bg-[#8B1E42]/10 border border-[#8B1E42]/20 text-[#8B1E42]"
+                }`}
+              >
+                {profileNotice.type === "success" ? (
+                  <Check className="w-4 h-4 shrink-0" />
+                ) : (
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                )}
+                <span>{profileNotice.text}</span>
+              </div>
+            )}
+
+            {/* Patient Profile: View / Edit */}
             {loadingProfile ? (
               <div className="flex items-center justify-center py-8 text-[#8B7562] gap-2">
                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -1446,49 +1711,226 @@ export default function DoctorDashboard() {
               </div>
             ) : patientProfile ? (
               <div className="space-y-3 bg-[#EDE3D8] p-4 rounded-2xl border border-[#DCCFBF] mb-5 text-sm text-[#5B4B41]">
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div>
-                    <span className="text-[#8B7562] block">Gender</span>
-                    <span className="font-semibold text-[#3D2E28]">{patientProfile.gender || "N/A"}</span>
-                  </div>
-                  <div>
-                    <span className="text-[#8B7562] block">Date of Birth</span>
-                    <span className="font-semibold text-[#3D2E28]">
-                      {patientProfile.date_of_birth
-                        ? formatWallClockDate(patientProfile.date_of_birth)
-                        : "N/A"}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <Phone className="w-3.5 h-3.5 text-[#8B1E42]" />
-                    <span>{patientProfile.phone_number || "No Phone"}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <Droplet className="w-3.5 h-3.5 text-[#8B1E42]" />
-                    <span className="font-semibold text-[#3D2E28]">Blood: {patientProfile.blood_type || "N/A"}</span>
-                  </div>
+                <div className="flex items-center justify-between gap-3">
+                  <h4 className="text-xs uppercase font-bold text-[#8B7562] tracking-wider">
+                    Patient Profile
+                  </h4>
+                  {!isEditingProfile && (
+                    <button
+                      onClick={handleStartEditProfile}
+                      className="px-3 py-1.5 rounded-full text-xs font-semibold text-[#8B1E42] bg-[#8B1E42]/10 hover:bg-[#8B1E42] hover:text-white transition flex items-center gap-1.5"
+                      title="Edit patient profile"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                      Edit Profile
+                    </button>
+                  )}
                 </div>
 
-                <div className="pt-2 border-t border-[#DCCFBF]/60 grid grid-cols-2 gap-3 text-xs">
-                  <div>
-                    <span className="text-[#8B7562] flex items-center gap-1">
-                      <ShieldAlert className="w-3 h-3 text-[#C08A3E]" /> Emergency Contact
-                    </span>
-                    <div className="font-medium text-[#3D2E28] mt-0.5">
-                      {patientProfile.emergency_contact_name || "N/A"}
+                {isEditingProfile ? (
+                  <form onSubmit={handleSaveProfile} className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <label className="block text-[10px] uppercase font-bold text-[#8B7562] tracking-wider mb-1">
+                          Date of Birth
+                        </label>
+                        <input
+                          type="date"
+                          name="dateOfBirth"
+                          value={profileForm.dateOfBirth}
+                          onChange={handleProfileFormChange}
+                          className={modalInputClass}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] uppercase font-bold text-[#8B7562] tracking-wider mb-1">
+                          Gender
+                        </label>
+                        <select
+                          name="gender"
+                          value={profileForm.gender}
+                          onChange={handleProfileFormChange}
+                          className={modalInputClass}
+                        >
+                          <option value="">Select Gender</option>
+                          <option value="Male">Male</option>
+                          <option value="Female">Female</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] uppercase font-bold text-[#8B7562] tracking-wider mb-1">
+                          Phone Number
+                        </label>
+                        <input
+                          type="tel"
+                          name="phoneNumber"
+                          required
+                          value={profileForm.phoneNumber}
+                          onChange={handleProfileFormChange}
+                          placeholder="09123456789"
+                          className={modalInputClass}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] uppercase font-bold text-[#8B7562] tracking-wider mb-1">
+                          Blood Type
+                        </label>
+                        <select
+                          name="bloodType"
+                          value={profileForm.bloodType}
+                          onChange={handleProfileFormChange}
+                          className={modalInputClass}
+                        >
+                          <option value="">Select Blood Type</option>
+                          {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((bt) => (
+                            <option key={bt} value={bt}>{bt}</option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
-                    <div className="text-[#8B7562]">{patientProfile.emergency_contact_phone}</div>
-                  </div>
-                  <div>
-                    <span className="text-[#8B7562] flex items-center gap-1">
-                      <Shield className="w-3 h-3 text-[#52795A]" /> Insurance
-                    </span>
-                    <div className="font-medium text-[#3D2E28] mt-0.5">
-                      {patientProfile.insurance_provider || "N/A"}
+
+                    <div className="pt-2 border-t border-[#DCCFBF]/60 grid grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <label className="block text-[10px] uppercase font-bold text-[#8B7562] tracking-wider mb-1">
+                          Emergency Contact Name
+                        </label>
+                        <input
+                          type="text"
+                          name="emergencyContactName"
+                          value={profileForm.emergencyContactName}
+                          onChange={handleProfileFormChange}
+                          placeholder="Full Name"
+                          className={modalInputClass}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] uppercase font-bold text-[#8B7562] tracking-wider mb-1">
+                          Emergency Contact Phone
+                        </label>
+                        <input
+                          type="tel"
+                          name="emergencyContactPhone"
+                          value={profileForm.emergencyContactPhone}
+                          onChange={handleProfileFormChange}
+                          placeholder="09123456789"
+                          className={modalInputClass}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] uppercase font-bold text-[#8B7562] tracking-wider mb-1">
+                          Insurance Provider
+                        </label>
+                        <input
+                          type="text"
+                          name="insuranceProvider"
+                          value={profileForm.insuranceProvider}
+                          onChange={handleProfileFormChange}
+                          placeholder="e.g. PhilHealth, Maxicare"
+                          className={modalInputClass}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] uppercase font-bold text-[#8B7562] tracking-wider mb-1">
+                          Insurance Policy Number
+                        </label>
+                        <input
+                          type="text"
+                          name="insurancePolicyNumber"
+                          value={profileForm.insurancePolicyNumber}
+                          onChange={handleProfileFormChange}
+                          placeholder="Policy / Member ID"
+                          className={modalInputClass}
+                        />
+                      </div>
                     </div>
-                    <div className="text-[#8B7562]">Policy #{patientProfile.insurance_policy_number}</div>
-                  </div>
-                </div>
+
+                    <div className="pt-3 border-t border-[#DCCFBF]/60 flex justify-end gap-2.5">
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingProfile(false)}
+                        disabled={savingProfile}
+                        className="px-4 py-2 rounded-full text-xs font-semibold bg-[#F8F3EC] text-[#3D2E28] border border-[#DCCFBF] hover:bg-[#DCCFBF] transition disabled:opacity-50"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={savingProfile}
+                        className="px-4 py-2 rounded-full text-xs font-semibold bg-[#8B1E42] text-white hover:bg-[#A32B54] transition flex items-center gap-1.5 disabled:opacity-50"
+                      >
+                        {savingProfile ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Save className="w-3.5 h-3.5" />
+                        )}
+                        {savingProfile ? "Saving..." : "Save Changes"}
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <span className="text-[#8B7562] block">Full Name</span>
+                        <span className="font-semibold text-[#3D2E28]">
+                          {patientProfile.display_name || patientProfile.username || "N/A"}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[#8B7562] flex items-center gap-1">
+                          <Mail className="w-3 h-3 text-[#8B1E42]" /> Email
+                        </span>
+                        <span className="font-semibold text-[#3D2E28] break-all">
+                          {patientProfile.email || "N/A"}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[#8B7562] block">Gender</span>
+                        <span className="font-semibold text-[#3D2E28]">{patientProfile.gender || "N/A"}</span>
+                      </div>
+                      <div>
+                        <span className="text-[#8B7562] block">Date of Birth</span>
+                        <span className="font-semibold text-[#3D2E28]">
+                          {patientProfile.date_of_birth
+                            ? formatWallClockDate(patientProfile.date_of_birth)
+                            : "N/A"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Phone className="w-3.5 h-3.5 text-[#8B1E42]" />
+                        <span>{patientProfile.phone_number || "No Phone"}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Droplet className="w-3.5 h-3.5 text-[#8B1E42]" />
+                        <span className="font-semibold text-[#3D2E28]">Blood: {patientProfile.blood_type || "N/A"}</span>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-[#DCCFBF]/60 grid grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <span className="text-[#8B7562] flex items-center gap-1">
+                          <ShieldAlert className="w-3 h-3 text-[#C08A3E]" /> Emergency Contact
+                        </span>
+                        <div className="font-medium text-[#3D2E28] mt-0.5">
+                          {patientProfile.emergency_contact_name || "N/A"}
+                        </div>
+                        <div className="text-[#8B7562]">{patientProfile.emergency_contact_phone || "N/A"}</div>
+                      </div>
+                      <div>
+                        <span className="text-[#8B7562] flex items-center gap-1">
+                          <Shield className="w-3 h-3 text-[#52795A]" /> Insurance
+                        </span>
+                        <div className="font-medium text-[#3D2E28] mt-0.5">
+                          {patientProfile.insurance_provider || "N/A"}
+                        </div>
+                        <div className="text-[#8B7562]">
+                          Policy #{patientProfile.insurance_policy_number || "N/A"}
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             ) : null}
 
@@ -1509,24 +1951,124 @@ export default function DoctorDashboard() {
               )}
             </div>
 
+            {/* Consultation Notes */}
+            <div className="mb-5">
+              <div className="flex items-center justify-between mb-2.5">
+                <label className="text-xs uppercase font-bold text-[#8B7562] tracking-wider flex items-center gap-1.5">
+                  <FileText className="w-3.5 h-3.5 text-[#8B1E42]" />
+                  Consultation Notes
+                </label>
+                {!loadingNotes && !notesError && (
+                  <span className="text-[10px] text-[#8B7562] font-medium">
+                    {patientNotes.length} note{patientNotes.length === 1 ? "" : "s"}
+                  </span>
+                )}
+              </div>
+
+              {notesError && (
+                <div className="p-3 bg-[#8B1E42]/10 border border-[#8B1E42]/20 rounded-2xl text-xs text-[#8B1E42] mb-3 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{notesError}</span>
+                </div>
+              )}
+
+              {loadingNotes ? (
+                <div className="flex items-center justify-center py-5 text-[#8B7562] gap-2 text-xs">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Loading notes...</span>
+                </div>
+              ) : patientNotes.length > 0 ? (
+                <div className="max-h-48 overflow-y-auto space-y-2 mb-3">
+                  {patientNotes.map((note) => (
+                    <div
+                      key={note.id}
+                      className="bg-[#EDE3D8] border border-[#DCCFBF] rounded-xl p-3"
+                    >
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <span className="text-xs font-semibold text-[#3D2E28]">
+                          {note.doctor_name || "Doctor"}
+                        </span>
+                        <span className="text-[10px] text-[#8B7562]">
+                          {formatWallClockDateTime(note.created_at)}
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#5B4B41] whitespace-pre-wrap break-words">
+                        {note.note}
+                      </p>
+                      {note.appointment_id && (
+                        <div className="text-[10px] text-[#8B7562] mt-1.5">
+                          Appointment #{note.appointment_id}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs italic text-[#8B7562] mb-3">
+                  No consultation notes yet for this patient.
+                </p>
+              )}
+
+              <form onSubmit={handleSaveNote} className="space-y-2">
+                <textarea
+                  value={noteText}
+                  onChange={(e) => setNoteText(e.target.value)}
+                  rows={3}
+                  maxLength={2000}
+                  placeholder="Write a note about this patient while consulting..."
+                  className="w-full px-3 py-2.5 bg-[#F8F3EC] border border-[#DCCFBF] rounded-xl text-xs text-[#3D2E28] placeholder-[#8B7562] focus:outline-none focus:border-[#8B1E42] resize-y"
+                />
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-[10px] text-[#8B7562]">{noteText.length}/2000</span>
+                  <button
+                    type="submit"
+                    disabled={savingNote || !noteText.trim()}
+                    className="px-4 py-2 rounded-full text-xs font-semibold bg-[#8B1E42] text-white hover:bg-[#A32B54] transition flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {savingNote ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Save className="w-3.5 h-3.5" />
+                    )}
+                    {savingNote ? "Saving..." : "Save Note"}
+                  </button>
+                </div>
+              </form>
+            </div>
+
             {/* Status Selection Section */}
             <div>
               <label className="block text-xs uppercase font-bold text-[#8B7562] tracking-wider mb-2.5">
                 Update Status
               </label>
-              
-              <div className="grid grid-cols-2 gap-2.5">
-                {[
-                  { label: "Scheduled", value: "scheduled", color: "hover:border-[#8B7562]" },
-                  { label: "In Consultation", value: "In Consultation", color: "hover:border-[#C08A3E]" },
-                  { label: "Completed", value: "Completed", color: "hover:border-[#52795A]" },
-                  { label: "Cancelled", value: "cancelled", color: "hover:border-[#8B1E42]" },
-                ].map((opt) => {
+
+              <div className="flex items-center gap-3 mb-3">
+                <StatusBadge status={selectedAppointment.status} />
+                <span className="text-[11px] text-[#8B7562]">
+                  {user?.role === "admin"
+                    ? "Admins can set any appointment status."
+                    : "You can start a consultation or mark it completed."}
+                </span>
+              </div>
+
+              <div className={`grid gap-2.5 ${user?.role === "admin" ? "grid-cols-2" : "grid-cols-2"}`}>
+                {(user?.role === "admin"
+                  ? [
+                      { label: "Scheduled", value: "scheduled", color: "hover:border-[#8B7562]" },
+                      { label: "In Consultation", value: "in_consultation", color: "hover:border-[#C08A3E]" },
+                      { label: "Completed", value: "completed", color: "hover:border-[#52795A]" },
+                      { label: "Cancelled", value: "cancelled", color: "hover:border-[#8B1E42]" },
+                    ]
+                  : [
+                      { label: "In Consultation", value: "in_consultation", color: "hover:border-[#C08A3E]" },
+                      { label: "Completed", value: "completed", color: "hover:border-[#52795A]" },
+                    ]
+                ).map((opt) => {
                   const isSelected = selectedAppointment.status === opt.value;
                   return (
                     <button
                       key={opt.value}
-                      disabled={isUpdatingStatus}
+                      disabled={isUpdatingStatus || isSelected}
                       onClick={() => handleUpdateAppointmentStatus(selectedAppointment.id, opt.value)}
                       className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-xs font-semibold transition ${
                         isSelected
@@ -1534,21 +2076,27 @@ export default function DoctorDashboard() {
                           : `bg-[#F8F3EC] text-[#3D2E28] border-[#DCCFBF] ${opt.color} hover:bg-[#EDE3D8]`
                       }`}
                     >
-                      <span>{opt.label}</span>
+                      <span className="flex items-center gap-2">
+                        {isUpdatingStatus && !isSelected && (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        )}
+                        {opt.label}
+                      </span>
                       {isSelected && <Check className="w-4 h-4 text-white" />}
                     </button>
                   );
                 })}
               </div>
+
+              {statusError && (
+                <p className="mt-2.5 text-xs font-semibold text-[#8B1E42]">{statusError}</p>
+              )}
             </div>
 
             {/* Modal Actions */}
             <div className="mt-6 pt-4 border-t border-[#DCCFBF] flex justify-end">
               <button
-                onClick={() => {
-                  setSelectedAppointment(null);
-                  setPatientProfile(null);
-                }}
+                onClick={closeModal}
                 className="px-5 py-2 rounded-full text-xs font-semibold bg-[#EDE3D8] text-[#3D2E28] hover:bg-[#DCCFBF] transition"
               >
                 Close

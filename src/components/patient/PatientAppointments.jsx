@@ -107,6 +107,12 @@ function getStatusStyle(status) {
         dot: "bg-[#52795A]",
         label: "Completed",
       };
+    case "in_consultation":
+      return {
+        badge: "bg-[#C08A3E]/10 text-[#C08A3E] border border-[#C08A3E]/25",
+        dot: "bg-[#C08A3E]",
+        label: "In Consultation",
+      };
     case "declined":
     case "cancelled":
     case "canceled":
@@ -222,7 +228,7 @@ export default function PatientAppointments() {
   const filteredAppointments = todaysAppointments.filter((app) => {
     const status = (app.status || "").toLowerCase();
     if (activeFilter === "pending") return status === "pending";
-    if (activeFilter === "approved") return status === "scheduled";
+    if (activeFilter === "approved") return status === "scheduled" || status === "in_consultation";
     return true;
   });
 

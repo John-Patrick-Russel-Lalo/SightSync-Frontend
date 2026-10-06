@@ -32,6 +32,16 @@ import {
 const API_APPOINTMENTS_BASE = `${import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500"}/appointments`;
 const API_USERS_URL = `${import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500"}/users`;
 
+const APPOINTMENT_STATUS_LABELS = {
+  pending: "Pending",
+  scheduled: "Scheduled",
+  in_consultation: "In Consultation",
+  completed: "Completed",
+  cancelled: "Cancelled",
+  declined: "Declined",
+  no_show: "No Show",
+};
+
 export default function ScheduleAppointmentPage() {
   const { user } = useAuth(); // Logged in user context
 
@@ -117,6 +127,8 @@ export default function ScheduleAppointmentPage() {
     switch (s) {
       case "completed":
         return "bg-emerald-100 text-emerald-800 border-emerald-200";
+      case "in_consultation":
+        return "bg-amber-100 text-amber-800 border-amber-200";
       case "cancelled":
       case "canceled":
         return "bg-rose-100 text-rose-800 border-rose-200";
@@ -962,7 +974,9 @@ const appointmentDatesSet = useMemo(() => {
                           apt.status
                         )}`}
                       >
-                        {apt.status || "Scheduled"}
+                        {APPOINTMENT_STATUS_LABELS[(apt.status || "").toLowerCase()] ||
+                          apt.status ||
+                          "Scheduled"}
                       </span>
                     </div>
 

@@ -332,16 +332,19 @@ export default function Overview({ onNavigate }) {
 
   /* -------------------------- Schedule report ----------------------------- */
   const scheduleReport = useMemo(() => {
-    const rangeAppointments = appointments.filter((a) =>
+    // Terminal appointments (completed, cancelled, declined, no-show) are moved
+    // to the archive, so merge both sources for a complete schedule picture.
+    const appointmentHistory = [...appointments, ...archives];
+    const rangeAppointments = appointmentHistory.filter((a) =>
       isInRange(a.start_time || a.date)
     );
     const statusMap = toCountMap(rangeAppointments, getAppointmentStatus);
     const todayISO = toLocalISO(new Date());
     const now = new Date().getTime();
-    const today = appointments.filter(
+    const today = appointmentHistory.filter(
       (a) => toLocalISO(a.start_time || a.date) === todayISO
     );
-    const upcoming = appointments.filter((a) => {
+    const upcoming = appointmentHistory.filter((a) => {
       const time = wallClockTimeMs(a.start_time || a.date);
       return (
         !Number.isNaN(time) &&
@@ -370,7 +373,7 @@ export default function Overview({ onNavigate }) {
         .slice(0, 3)
         .map(([label, value]) => ({ id: label, name: label, meta: `${value} appointment${value === 1 ? "" : "s"}` })),
     };
-  }, [appointments, isInRange]);
+  }, [appointments, archives, isInRange]);
 
   /* --------------------------- Archive report ----------------------------- */
   const archiveReport = useMemo(() => {

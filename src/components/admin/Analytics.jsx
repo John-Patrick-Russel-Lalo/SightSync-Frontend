@@ -274,13 +274,20 @@ export default function Analytics({ onNavigate }) {
     [salesPrev]
   );
 
+  // Terminal appointments (completed, cancelled, declined, no-show) live in
+  // appointment_archive, so count both sources to keep status totals complete.
+  const appointmentHistory = useMemo(
+    () => [...appointments, ...archives],
+    [appointments, archives]
+  );
+
   const appointmentsInWindow = useMemo(
-    () => appointments.filter((a) => inWindow(a.start_time || a.date)),
-    [appointments, inWindow]
+    () => appointmentHistory.filter((a) => inWindow(a.start_time || a.date)),
+    [appointmentHistory, inWindow]
   );
   const appointmentsPrev = useMemo(
-    () => appointments.filter((a) => inWindow(a.start_time || a.date, bounds.prevStart, bounds.prevEnd)),
-    [appointments, inWindow, bounds]
+    () => appointmentHistory.filter((a) => inWindow(a.start_time || a.date, bounds.prevStart, bounds.prevEnd)),
+    [appointmentHistory, inWindow, bounds]
   );
 
   const archivesInWindow = useMemo(

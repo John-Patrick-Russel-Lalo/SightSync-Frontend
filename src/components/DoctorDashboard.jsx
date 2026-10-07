@@ -1481,9 +1481,17 @@ export default function DoctorDashboard() {
         throw new Error(data.error || "Failed to update status on server.");
       }
 
-      setAppointments((prev) =>
-        prev.map((app) => (app.id === appointmentId ? { ...app, status: newStatus } : app))
-      );
+      // Terminal statuses are moved to the appointment archive by the backend,
+      // so drop the appointment from the active list instead of re-badging it.
+      const isTerminal = ["completed", "cancelled", "declined", "no_show"].includes(newStatus);
+
+      if (isTerminal) {
+        setAppointments((prev) => prev.filter((app) => app.id !== appointmentId));
+      } else {
+        setAppointments((prev) =>
+          prev.map((app) => (app.id === appointmentId ? { ...app, status: newStatus } : app))
+        );
+      }
 
       if (selectedAppointment && selectedAppointment.id === appointmentId) {
         setSelectedAppointment((prev) => ({ ...prev, status: newStatus }));

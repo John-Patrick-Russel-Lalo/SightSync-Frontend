@@ -6,8 +6,9 @@ import SettingsPage from "../SettingsPage";
 import PatientAppointments from "./PatientAppointments";
 import BookAppointment from "./BookAppointment";
 import DoctorAvailability from "./DoctorAvailability";
+import PatientOrders from "./PatientOrders";
 import AppointmentArchive from "../AppointmentArchive";
-import { User, CalendarHeart, CalendarPlus, Settings, Archive, Activity } from "lucide-react";
+import { User, CalendarHeart, CalendarPlus, Settings, Archive, Activity, Receipt } from "lucide-react";
 
 export default function PatientDashboard() {
   const { user, logout } = useAuth();
@@ -17,6 +18,7 @@ export default function PatientDashboard() {
     { id: "overview", label: "My Appointments", icon: CalendarHeart },
     { id: "availability", label: "Doctor Availability", icon: Activity },
     { id: "book", label: "Book Appointment", icon: CalendarPlus },
+    { id: "orders", label: "My Orders", icon: Receipt },
     { id: "archive", label: "Appointment Archive", icon: Archive },
     { id: "profile", label: "My Profile", icon: User, sectionEnd: true },
     { id: "settings", label: "Settings", icon: Settings, sectionEnd: true },
@@ -38,6 +40,7 @@ export default function PatientDashboard() {
         <DoctorAvailability onBook={() => setActiveTab("book")} />
       )}
       {activeTab === "book" && <BookAppointment />}
+      {activeTab === "orders" && <PatientOrders />}
       {activeTab === "archive" && <AppointmentArchive scope="my" />}
       {activeTab === "profile" && <PatientProfileForm />}
       {activeTab === "settings" && <SettingsPage />}

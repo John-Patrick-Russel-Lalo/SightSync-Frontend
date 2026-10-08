@@ -13,6 +13,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { parseWallClock, toLocalDateString } from "../../utils/dateTime";
+import { useNotifications } from "../../context/NotificationContext";
 
 const API_URL = import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500";
 
@@ -30,6 +31,7 @@ function formatPeso(value) {
 }
 
 export default function BookAppointment() {
+  const { doctorStatuses } = useNotifications();
   const [doctorList, setDoctorList] = useState([]);
   const [bookingDoctorId, setBookingDoctorId] = useState("");
   const [bookingDate, setBookingDate] = useState(new Date());
@@ -103,6 +105,9 @@ export default function BookAppointment() {
   );
   const consultationFee = selectedDoctor?.consultation_fee;
   const halfPaymentAmount = formatPeso(Number(consultationFee) / 2);
+
+  // Live presence pushed over the websocket: "available" | "in_consultation".
+  const presenceOf = (doc) => doctorStatuses[String(doc.user_id)];
 
   // Release the previous preview object URL so the blob is not leaked.
   useEffect(() => {
@@ -445,6 +450,20 @@ export default function BookAppointment() {
             <div className="text-xs font-semibold text-[#8B7562] uppercase tracking-wider mb-3">
               Current available doctors
             </div>
+            <div className="flex items-center gap-4 mb-3 text-[11px] font-medium text-[#8B7562]">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#52795A]" />
+                Available now
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#C08A3E] animate-pulse" />
+                In consultation
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-[#8B7562]/70">
+                <span className="w-2 h-2 rounded-full bg-[#8B7562]" />
+                Status nudges in real time
+              </span>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {doctorList.map((doc) => (
                 <button
@@ -477,6 +496,19 @@ export default function BookAppointment() {
                         ? `₱${parseFloat(doc.consultation_fee).toFixed(2)}`
                         : "Not Set"}
                     </span>
+                  </span>
+                  <span className="ml-auto shrink-0">
+                    {presenceOf(doc) === "in_consultation" ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#C08A3E]/10 text-[#C08A3E] border border-[#C08A3E]/25 text-[11px] font-semibold">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#C08A3E] animate-pulse" />
+                        In Consultation
+                      </span>
+                    ) : presenceOf(doc) === "available" ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#52795A]/10 text-[#52795A] border border-[#52795A]/25 text-[11px] font-semibold">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#52795A]" />
+                        Available
+                      </span>
+                    ) : null}
                   </span>
                 </button>
               ))}

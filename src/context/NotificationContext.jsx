@@ -21,6 +21,8 @@ export const NotificationProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
   const [connected, setConnected] = useState(false);
   const [toast, setToast] = useState(null);
+  // Live doctor presence for the booking page: { [doctorUserId]: "available" | "in_consultation" }
+  const [doctorStatuses, setDoctorStatuses] = useState({});
 
   const socketRef = useRef(null);
   const toastTimerRef = useRef(null);
@@ -33,6 +35,7 @@ export const NotificationProvider = ({ children }) => {
     setNotifications([]);
     setConnected(false);
     setToast(null);
+    setDoctorStatuses({});
   }
 
   const unreadCount = useMemo(
@@ -98,6 +101,17 @@ export const NotificationProvider = ({ children }) => {
 
     socket.on("notifications:read-all", () => {
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    });
+
+    socket.on("doctor:status:snapshot", ({ statuses }) => {
+      if (statuses && typeof statuses === "object") {
+        setDoctorStatuses((prev) => ({ ...prev, ...statuses }));
+      }
+    });
+
+    socket.on("doctor:status", ({ doctorId, status }) => {
+      if (doctorId === undefined || doctorId === null || !status) return;
+      setDoctorStatuses((prev) => ({ ...prev, [String(doctorId)]: status }));
     });
 
     return () => {
@@ -191,11 +205,12 @@ export const NotificationProvider = ({ children }) => {
       unreadCount,
       connected,
       toast,
+      doctorStatuses,
       dismissToast: () => setToast(null),
       markRead,
       markAllRead,
     }),
-    [notifications, unreadCount, connected, toast, markRead, markAllRead]
+    [notifications, unreadCount, connected, toast, doctorStatuses, markRead, markAllRead]
   );
 
   return (

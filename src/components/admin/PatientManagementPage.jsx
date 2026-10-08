@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { User, X, Loader2, Edit3, AlertCircle, Search, Calendar, Clock } from "lucide-react";
+import { User, X, Loader2, Edit3, AlertCircle, Search, Calendar, Clock, FileText } from "lucide-react";
 import { formatWallClockDate, formatWallClockDateTime } from "../../utils/dateTime";
+import PatientReportModal from "../PatientReportModal";
 
 const API_PATIENTS_URL = `${import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500"}/patients`;
 const API_APPOINTMENTS_URL = `${import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500"}/appointments`;
@@ -73,6 +74,9 @@ export default function PatientManagementPage({ users: initialUsers, fetchWithCr
   const [editFormData, setEditFormData] = useState({});
   const [updating, setUpdating] = useState(false);
   const [updatingStatusId, setUpdatingStatusId] = useState(null);
+
+  // Patient Report Modal State
+  const [reportPatient, setReportPatient] = useState(null);
 
   // Helper to resolve status (defaults to "pending" if patient profile is missing)
   const getPatientStatus = (patient) => {
@@ -402,12 +406,22 @@ export default function PatientManagementPage({ users: initialUsers, fetchWithCr
                       </div>
                     </td>
                     <td className="px-4 sm:px-6 py-4 text-right">
-                      <button
-                        onClick={() => fetchPatientProfile(p.id)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-[#8B1E42] bg-[#8B1E42]/10 hover:bg-[#8B1E42] hover:text-white transition"
-                      >
-                        {currentStatus === "pending" ? "Create Profile" : "View Profile"}
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => fetchPatientProfile(p.id)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-[#8B1E42] bg-[#8B1E42]/10 hover:bg-[#8B1E42] hover:text-white transition"
+                        >
+                          {currentStatus === "pending" ? "Create Profile" : "View Profile"}
+                        </button>
+                        <button
+                          onClick={() => setReportPatient({ id: p.id, name: p.display_name || p.username })}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-stone-600 bg-[#F2EAE1] border border-[#DCD0C0] hover:bg-[#8B1E42] hover:text-white hover:border-[#8B1E42] transition"
+                          title={`View clinical report for ${p.display_name || p.username || p.id}`}
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                          Report
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -689,6 +703,15 @@ export default function PatientManagementPage({ users: initialUsers, fetchWithCr
             )}
           </div>
         </div>
+      )}
+
+      {reportPatient && (
+        <PatientReportModal
+          patientId={reportPatient.id}
+          patientName={reportPatient.name}
+          fetchFn={fetchWithCredentials}
+          onClose={() => setReportPatient(null)}
+        />
       )}
     </div>
   );

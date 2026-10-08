@@ -1057,6 +1057,7 @@ import {
 import PortalLayout from "./PortalLayout";
 import SettingsPage from "./SettingsPage";
 import AppointmentArchive from "./AppointmentArchive";
+import PatientReportModal from "./PatientReportModal";
 
 const API_URL = import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500";
 
@@ -1136,6 +1137,9 @@ export default function DoctorDashboard() {
   const [profileError, setProfileError] = useState(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [statusError, setStatusError] = useState(null);
+
+  // Patient Report Modal State
+  const [showReport, setShowReport] = useState(false);
 
   // Re-render trigger so the doctor's In Session / Available pill follows the
   // clock even when no appointments change.
@@ -1285,6 +1289,7 @@ export default function DoctorDashboard() {
     setNotesError(null);
     setNoteText("");
     setStatusError(null);
+    setShowReport(false);
 
     if (app.patientId) {
       fetchPatientNotes(app.patientId);
@@ -1331,6 +1336,7 @@ export default function DoctorDashboard() {
     setIsEditingProfile(false);
     setProfileNotice(null);
     setStatusError(null);
+    setShowReport(false);
   };
 
   // 3. Doctor edits the patient profile when the recorded data is inaccurate
@@ -1680,12 +1686,24 @@ export default function DoctorDashboard() {
                   </span>
                 </div>
               </div>
-              <button
-                onClick={closeModal}
-                className="p-1.5 text-[#8B7562] hover:text-[#3D2E28] rounded-full hover:bg-[#EDE3D8] transition"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                {selectedAppointment.patientId && (
+                  <button
+                    onClick={() => setShowReport(true)}
+                    className="px-3 py-1.5 rounded-full text-xs font-semibold text-[#8B1E42] bg-[#8B1E42]/10 hover:bg-[#8B1E42] hover:text-white transition flex items-center gap-1.5"
+                    title="Open the patient's clinical report"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    Report
+                  </button>
+                )}
+                <button
+                  onClick={closeModal}
+                  className="p-1.5 text-[#8B7562] hover:text-[#3D2E28] rounded-full hover:bg-[#EDE3D8] transition"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             {/* Profile Save Notice */}
@@ -2112,6 +2130,19 @@ export default function DoctorDashboard() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Patient Report Modal */}
+      {showReport && selectedAppointment?.patientId && (
+        <PatientReportModal
+          patientId={selectedAppointment.patientId}
+          patientName={
+            patientProfile?.display_name ||
+            patientProfile?.username?.replace(/-/g, " ") ||
+            selectedAppointment.patientName
+          }
+          onClose={() => setShowReport(false)}
+        />
       )}
     </PortalLayout>
   );

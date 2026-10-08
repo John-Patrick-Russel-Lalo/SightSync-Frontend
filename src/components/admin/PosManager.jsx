@@ -17,7 +17,6 @@ import {
   CreditCard,
   QrCode,
   Coins,
-  User,
   Eye,
   Ban,
   Store,
@@ -28,6 +27,7 @@ import { parseWallClock, toLocalDateString } from "../../utils/dateTime";
 
 const API_POS_URL = `${import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500"}/pos`;
 const API_INVENTORY_URL = `${import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500"}/inventory`;
+const API_USERS_URL = `${import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500"}/users`;
 
 const inputClass =
   "w-full pl-4 pr-4 py-2.5 bg-[#F2EAE1] border border-[#DCD0C0] rounded-xl text-sm text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#8B1E42]/20 focus:border-[#8B1E42]";
@@ -71,6 +71,12 @@ export default function PosManager() {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [customerName, setCustomerName] = useState("");
+  // Registered patient picked from the dropdown; null keeps the old
+  // manual/walk-in behaviour.
+  const [patients, setPatients] = useState([]);
+  const [patientsLoading, setPatientsLoading] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [patientDropdownOpen, setPatientDropdownOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [amountTendered, setAmountTendered] = useState("");
   const [discountAmount, setDiscountAmount] = useState("");
@@ -162,11 +168,30 @@ export default function PosManager() {
     }
   };
 
+  const fetchPatients = async () => {
+    setPatientsLoading(true);
+    try {
+      const response = await fetchWithCredentials(API_USERS_URL);
+      if (response.status === 401 || response.status === 403) {
+        throw new Error("Unauthorized");
+      }
+      const result = await response.json();
+      const list = Array.isArray(result) ? result : result?.data || [];
+      setPatients(list.filter((u) => u?.role === "patient"));
+    } catch {
+      // The picker is a convenience; manual customer name still works without it.
+      setPatients([]);
+    } finally {
+      setPatientsLoading(false);
+    }
+  };
+
   useEffect(() => {
     const timer = setTimeout(() => {
       fetchInventory();
       fetchSales();
       fetchSummary();
+      fetchPatients();
     }, 0);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -209,13 +234,38 @@ export default function PosManager() {
     const term = salesSearch.trim().toLowerCase();
     if (!term) return sales;
     return sales.filter((sale) =>
-      [sale.receipt_number, sale.customer_name, sale.payment_method, sale.sold_by_name]
+      [sale.receipt_number, sale.customer_name, sale.patient_name, sale.payment_method, sale.sold_by_name]
         .filter(Boolean)
         .join(" ")
         .toLowerCase()
         .includes(term)
     );
   }, [sales, salesSearch]);
+
+  const filteredPatients = useMemo(() => {
+    const term = customerName.trim().toLowerCase();
+    const matches = term
+      ? patients.filter((patient) =>
+          [patient.display_name, patient.username, patient.email]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase()
+            .includes(term)
+        )
+      : patients;
+    return matches.slice(0, 20);
+  }, [patients, customerName]);
+
+  const selectPatient = (patient) => {
+    setSelectedPatient(patient);
+    setCustomerName(patient.display_name || patient.username || "");
+    setPatientDropdownOpen(false);
+  };
+
+  const clearSelectedPatient = () => {
+    setSelectedPatient(null);
+    setPatientDropdownOpen(false);
+  };
 
   const addToCart = (item) => {
     if (Number(item.quantity) <= 0) return;
@@ -268,6 +318,7 @@ export default function PosManager() {
   const clearCart = () => {
     setCart([]);
     setCustomerName("");
+    clearSelectedPatient();
     setDiscountAmount("");
     setTaxRate("");
     setAmountTendered("");
@@ -295,6 +346,7 @@ export default function PosManager() {
       const payload = {
         items: cart.map((l) => ({ inventoryId: l.inventoryId, quantity: l.quantity })),
         customerName: customerName || null,
+        patientId: selectedPatient?.id || null,
         paymentMethod,
         amountTendered: amountTendered === "" || amountTendered == null ? null : tendered,
         discountAmount: Number(discountAmount) || 0,
@@ -679,18 +731,77 @@ export default function PosManager() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-2">
-                    Customer Name
+                    Customer / Patient
                   </label>
                   <div className="relative">
-                    <User className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
+                    <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
                     <input
                       type="text"
-                      placeholder="Walk-in customer"
+                      placeholder="Search a patient, or type a walk-in name..."
                       value={customerName}
-                      onChange={(e) => setCustomerName(e.target.value)}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setCustomerName(value);
+                        setPatientDropdownOpen(true);
+                        if (!value.trim()) setSelectedPatient(null);
+                      }}
+                      onFocus={() => setPatientDropdownOpen(true)}
+                      onBlur={() => setPatientDropdownOpen(false)}
                       className={`${inputClass} pl-10`}
                     />
+                    {patientDropdownOpen && (
+                      <ul className="absolute z-20 mt-1 w-full max-h-44 overflow-y-auto bg-white border border-[#DCD0C0] rounded-xl shadow-lg py-1">
+                        {filteredPatients.length === 0 ? (
+                          <li className="px-3 py-2 text-xs text-stone-500">
+                            {patientsLoading
+                              ? "Loading patients..."
+                              : customerName.trim()
+                                ? "No matching patients — your typed name will be saved as a walk-in."
+                                : "No registered patients yet."}
+                          </li>
+                        ) : (
+                          filteredPatients.map((patient) => (
+                            <li key={patient.id}>
+                              <button
+                                type="button"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => selectPatient(patient)}
+                                className="w-full text-left px-3 py-2 hover:bg-[#F2EAE1] flex items-center justify-between gap-2"
+                              >
+                                <span className="text-sm font-medium text-stone-800 truncate">
+                                  {patient.display_name || patient.username}
+                                </span>
+                                <span className="text-xs text-stone-400 truncate shrink-0">
+                                  {patient.email}
+                                </span>
+                              </button>
+                            </li>
+                          ))
+                        )}
+                      </ul>
+                    )}
                   </div>
+
+                  {selectedPatient ? (
+                    <div className="mt-2 flex items-center justify-between gap-2 px-3 py-2 bg-[#8B1E42]/10 border border-[#8B1E42]/20 rounded-xl">
+                      <span className="text-xs font-semibold text-[#8B1E42] truncate">
+                        Record this sale for {selectedPatient.display_name || selectedPatient.username}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={clearSelectedPatient}
+                        className="shrink-0 inline-flex items-center gap-1 text-xs font-semibold text-stone-500 hover:text-rose-700 transition"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-stone-500 mt-1.5">
+                      Select a patient from the list to record the sale under their account.
+                      Typing without selecting saves a walk-in customer only.
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -1009,6 +1120,9 @@ export default function PosManager() {
             <>
               <div className="grid grid-cols-2 gap-2 sm:gap-3">
                 <DetailChip label="Customer" value={selectedSale.customer_name || "Walk-in Customer"} />
+                {selectedSale.patient_name && (
+                  <DetailChip label="Linked Patient" value={selectedSale.patient_name} />
+                )}
                 <DetailChip label="Cashier" value={selectedSale.sold_by_name || "—"} />
                 <DetailChip
                   label="Payment Method"

@@ -23,6 +23,7 @@ import {
   UserCheck,
   Clock,
   Banknote,
+  Sparkles,
 } from "lucide-react";
 import { toLocalDateString, wallClockTimeMs } from "../../utils/dateTime";
 
@@ -168,6 +169,10 @@ export default function Analytics({ onNavigate }) {
   const [reloadKey, setReloadKey] = useState(0);
   const [errors, setErrors] = useState({});
   const [reviewed, setReviewed] = useState([]);
+
+  const [aiSummary, setAiSummary] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState(null);
 
   const [users, setUsers] = useState([]);
   const [doctors, setDoctors] = useState([]);
@@ -947,6 +952,98 @@ export default function Analytics({ onNavigate }) {
   const toggleReviewed = (id) =>
     setReviewed((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
+  // A stored summary describes one window, so it is dropped whenever the
+  // range, the data, or anything else it was built from changes.
+  const clearAiSummary = () => {
+    setAiSummary("");
+    setAiError(null);
+  };
+
+  async function handleGenerateAiSummary() {
+    if (aiLoading) return;
+    setAiLoading(true);
+    setAiError(null);
+
+    try {
+      const res = await fetch(`${API_URL}/ai/analytics-summary`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          period: {
+            startISO: bounds.startISO,
+            endISO: bounds.endISO,
+            rangeDays,
+            comparisonReady,
+          },
+          stats: {
+            sales: {
+              revenue: salesStats.revenue,
+              transactions: salesStats.transactions,
+              averageTicket: salesStats.average,
+              revenueDelta: salesStats.revenueDelta,
+              transactionsDelta: salesStats.transactionsDelta,
+              voided: salesStats.voided,
+              voidRate: salesStats.voidRate,
+              discounts: salesStats.discounts,
+              methodCounts: salesStats.methodCounts,
+            },
+            appointments: {
+              total: appointmentStats.total,
+              totalDelta: appointmentStats.totalDelta,
+              completed: appointmentStats.completed,
+              pending: appointmentStats.pending,
+              scheduled: appointmentStats.scheduled,
+              lost: appointmentStats.lost,
+              noShow: appointmentStats.noShow,
+              noShowRate: appointmentStats.noShowRate,
+              completionRate: appointmentStats.completionRate,
+              completionDelta: appointmentStats.completionDelta,
+            },
+            patients: {
+              total: patientStats.total,
+              newInWindow: patientStats.newInWindow,
+              newDelta: patientStats.newDelta,
+              active: patientStats.active,
+              pending: patientStats.pending,
+              suspended: patientStats.suspended,
+              inactive: patientStats.inactive,
+            },
+            inventory: {
+              items: inventoryStats.total,
+              outOfStock: inventoryStats.outOfStock.length,
+              lowStock: inventoryStats.lowStock.length,
+              stockValue: inventoryStats.stockValue,
+              retailValue: inventoryStats.retailValue,
+              deadCapital: inventoryStats.deadCapital,
+              sellThrough: inventoryStats.sellThrough,
+            },
+            doctors: {
+              accounts: doctorAccounts.length,
+              withoutProfile: doctorPerformance.unprofiled,
+              idle: doctorPerformance.idle.length,
+              topShare: doctorPerformance.topShare,
+            },
+          },
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.error || data.message || "Could not generate the analytics summary.");
+      }
+      if (!data.ai_summary) {
+        throw new Error("The AI service returned an empty summary.");
+      }
+
+      setAiSummary(data.ai_summary);
+    } catch (err) {
+      setAiError(err.message);
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
   const hasData =
     users.length || doctors.length || inventory.length || sales.length || appointments.length;
 
@@ -966,7 +1063,10 @@ export default function Analytics({ onNavigate }) {
           </div>
         </div>
         <button
-          onClick={() => setReloadKey((key) => key + 1)}
+          onClick={() => {
+            setReloadKey((key) => key + 1);
+            clearAiSummary();
+          }}
           disabled={loading}
           className="inline-flex items-center gap-2 self-start sm:self-auto bg-[#8B1E42] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#731836] transition shadow-sm disabled:opacity-60"
         >
@@ -1004,7 +1104,10 @@ export default function Analytics({ onNavigate }) {
               {RANGE_OPTIONS.map((option) => (
                 <button
                   key={option.id}
-                  onClick={() => setRangeDays(option.id)}
+                  onClick={() => {
+                    setRangeDays(option.id);
+                    clearAiSummary();
+                  }}
                   className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition ${
                     rangeDays === option.id
                       ? "bg-[#8B1E42] text-white shadow-sm"
@@ -1032,6 +1135,70 @@ export default function Analytics({ onNavigate }) {
           )}
         </div>
       </div>
+
+      {hasData && (
+        <div className="bg-[#F8F3EC] border border-[#DCD0C0] rounded-2xl shadow-sm p-4 sm:p-5 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-[#8B1E42]/10 text-[#8B1E42] rounded-xl border border-[#8B1E42]/15">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-stone-900">AI Summary</h3>
+                <p className="text-xs text-stone-600">
+                  A plain-language read of {bounds.startISO} &rarr; {bounds.endISO}.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleGenerateAiSummary}
+              disabled={aiLoading || loading}
+              className="inline-flex items-center gap-2 self-start sm:self-auto px-4 py-2 rounded-xl text-sm font-semibold text-[#8B1E42] bg-[#8B1E42]/10 hover:bg-[#8B1E42] hover:text-white transition disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {aiLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Writing…
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4" />
+                  {aiSummary ? "Regenerate" : "Generate Summary"}
+                </>
+              )}
+            </button>
+          </div>
+
+          {aiError && (
+            <div className="flex items-start gap-2 text-xs rounded-xl px-3 py-2.5 bg-rose-50 border border-rose-200 text-rose-800">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
+              <span className="break-words">{aiError}</span>
+            </div>
+          )}
+
+          {aiLoading ? (
+            <div className="flex items-center gap-2 text-xs text-stone-500 py-1">
+              <Loader2 className="w-4 h-4 animate-spin text-[#8B1E42]" />
+              Summarizing the current figures…
+            </div>
+          ) : aiSummary ? (
+            <>
+              <p className="text-sm text-stone-700 leading-relaxed whitespace-pre-wrap break-words">
+                {aiSummary}
+              </p>
+              <p className="text-[11px] text-stone-400">
+                AI-generated from the figures shown on this page — verify before acting.
+              </p>
+            </>
+          ) : (
+            <p className="text-xs italic text-stone-500">
+              Generate a short summary of sales, appointments, patient growth, inventory,
+              and staffing for the selected period.
+            </p>
+          )}
+        </div>
+      )}
 
       {loading && !hasData ? (
         <div className="p-6 sm:p-10 flex items-center justify-center gap-3 text-stone-500">

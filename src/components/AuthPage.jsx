@@ -281,7 +281,7 @@ export default function LoginPage() {
 
     try {
       if (isLogin) {
-        const user = await login(email, password);
+        const user = await login(email.trim(), password.trim());
         const role = user?.role;
 
         if (role === "admin") {
@@ -293,10 +293,10 @@ export default function LoginPage() {
         }
       } else {
         await register({
-          firstName,
-          lastName,
-          email,
-          password,
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          email: email.trim(),
+          password: password.trim(),
         });
 
         setIsLogin(true);

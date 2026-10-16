@@ -1,1 +1,60 @@
 @import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   Patient report printing
+
+   The report dialog is portalled onto <body>, so for print we can simply drop
+   the application shell behind it and neutralise the modal presentation that
+   only makes sense on screen (fixed positioning, backdrop blur, shadow,
+   viewport-height limits). The result is a clean white page containing just
+   the report, flowing across as many pages as the content needs.
+--------------------------------------------------------------------------- */
+@media print {
+  /* Everything that is not the report dialog stays out of the printout. */
+  body > *:not(.report-print-dialog) {
+    display: none !important;
+  }
+
+  .report-print-dialog {
+    position: static !important;
+    inset: auto !important;
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    z-index: auto !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* Backdrop filters are ignored on paper but some engines still paint them. */
+  .report-print-dialog *,
+  .report-print-dialog *::before,
+  .report-print-dialog *::after {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* The report body is a scroll area on screen; on paper it must just flow. */
+  .report-print-dialog [class*="overflow-y-auto"],
+  .report-print-dialog [class*="overflow-hidden"] {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  /* Keep rows from being sliced in half between pages. */
+  .report-print-dialog [class*="rounded-xl"] {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .report-print-dialog h4 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+}

@@ -10,8 +10,6 @@ export default function PatientProfileForm() {
     bloodType: "",
     emergencyContactName: "",
     emergencyContactPhone: "",
-    insuranceProvider: "",
-    insurancePolicyNumber: "",
   });
 
   const [loading, setLoading] = useState(true);
@@ -52,8 +50,6 @@ export default function PatientProfileForm() {
           bloodType: p.blood_type || "",
           emergencyContactName: p.emergency_contact_name || "",
           emergencyContactPhone: p.emergency_contact_phone || "",
-          insuranceProvider: p.insurance_provider || "",
-          insurancePolicyNumber: p.insurance_policy_number || "",
         });
       }
     } catch (err) {
@@ -275,42 +271,6 @@ export default function PatientProfileForm() {
                 value={formData.emergencyContactPhone}
                 onChange={handleChange}
                 placeholder="09123456789"
-                className={inputStyles}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Section 3: Insurance Details */}
-        <div className="space-y-4">
-          <div className="border-b border-[#E3D8CC] pb-2">
-            <h3 className="text-xs font-bold text-stone-900 uppercase tracking-wider">
-              Insurance Details
-            </h3>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className={labelStyles}>Insurance Provider</label>
-              <input
-                type="text"
-                name="insuranceProvider"
-                disabled={isLocked}
-                value={formData.insuranceProvider}
-                onChange={handleChange}
-                placeholder="e.g. PhilHealth, Maxicare"
-                className={inputStyles}
-              />
-            </div>
-
-            <div>
-              <label className={labelStyles}>Insurance Policy Number</label>
-              <input
-                type="text"
-                name="insurancePolicyNumber"
-                disabled={isLocked}
-                value={formData.insurancePolicyNumber}
-                onChange={handleChange}
-                placeholder="Policy / Member ID"
                 className={inputStyles}
               />
             </div>

@@ -11,6 +11,9 @@ import {
   Upload,
   X,
   ShieldCheck,
+  Smartphone,
+  Copy,
+  Check,
 } from "lucide-react";
 import { parseWallClock, toLocalDateString } from "../../utils/dateTime";
 import { useNotifications } from "../../context/NotificationContext";
@@ -24,6 +27,13 @@ const ACCEPTED_PAYMENT_PROOF_TYPES = [
   "image/png",
   "image/webp",
 ];
+
+// GCash details shown to the patient before they upload their half-payment proof.
+// Update these values to match the clinic's receiving account.
+const GCASH = {
+  number: "0917 000 0000",
+  accountName: "SightSync Optical Clinic",
+};
 
 function formatPeso(value) {
   const amount = Number(value);
@@ -43,6 +53,8 @@ export default function BookAppointment() {
   const [paymentProofPreview, setPaymentProofPreview] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [bookingMessage, setBookingMessage] = useState(null);
+  const [copiedGcash, setCopiedGcash] = useState(false);
+  const [loadingDoctors, setLoadingDoctors] = useState(true);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -58,10 +70,19 @@ export default function BookAppointment() {
         return res.json();
       })
       .then((data) => {
-        if (!cancelled) setDoctorList(data.data || []);
+        if (cancelled) return;
+        const list = data.data || [];
+        setDoctorList(list);
+        if (list.length > 0) {
+          setBookingDoctorId(String(list[0].user_id));
+          setLoadingSlots(true);
+        }
       })
       .catch((err) => {
         if (!cancelled) setBookingMessage({ type: "error", text: err.message });
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingDoctors(false);
       });
 
     return () => {
@@ -156,6 +177,16 @@ export default function BookAppointment() {
     setPaymentProof(null);
     setPaymentProofPreview("");
     if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  async function copyGcashNumber() {
+    try {
+      await navigator.clipboard.writeText(GCASH.number.replace(/\s+/g, ""));
+      setCopiedGcash(true);
+      setTimeout(() => setCopiedGcash(false), 2000);
+    } catch {
+      // Clipboard access may be blocked; the number is still visible on screen.
+    }
   }
 
   async function handleRequestAppointment(e) {
@@ -266,29 +297,31 @@ export default function BookAppointment() {
             <label className="block text-xs font-semibold text-[#8B7562] uppercase tracking-wider mb-2">
               Doctor
             </label>
-            <div className="relative">
-              <Stethoscope className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8B7562]" />
-              <select
-                value={bookingDoctorId}
-                onChange={(e) => {
-                  const nextId = e.target.value;
-                  if (nextId === bookingDoctorId) return;
-                  setBookingDoctorId(nextId);
-                  setAvailableSlots([]);
-                  setSelectedSlot("");
-                  setLoadingSlots(Boolean(nextId));
-                }}
-                className="w-full pl-10 pr-4 py-2.5 bg-[#EDE3D8] border border-[#DCCFBF] rounded-xl text-sm text-[#3D2E28] focus:outline-none focus:ring-2 focus:ring-[#8B1E42]/20 focus:border-[#8B1E42] cursor-pointer"
-                required
-              >
-                <option value="">Select Doctor</option>
-                {doctorList.map((doc) => (
-                  <option key={doc.user_id} value={doc.user_id}>
-                    {doc.display_name || doc.username} — {doc.specialty || "General"}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {loadingDoctors ? (
+              <div className="flex items-center gap-2 w-full px-3.5 py-2.5 bg-[#EDE3D8] border border-[#DCCFBF] rounded-xl text-sm text-[#8B7562]">
+                <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                Loading doctor...
+              </div>
+            ) : selectedDoctor ? (
+              <div className="flex items-center gap-2.5 w-full px-3 py-2.5 bg-[#EDE3D8] border border-[#DCCFBF] rounded-xl">
+                <Stethoscope className="w-4 h-4 text-[#8B1E42] shrink-0" />
+                <span className="min-w-0">
+                  <span className="block font-semibold text-sm text-[#3D2E28] truncate">
+                    {selectedDoctor.display_name || selectedDoctor.username}
+                  </span>
+                  <span className="block text-[11px] text-[#8B7562] truncate">
+                    {selectedDoctor.specialty || "General"}
+                    {presenceOf(selectedDoctor) === "available" && " • Available now"}
+                    {presenceOf(selectedDoctor) === "in_consultation" && " • In consultation"}
+                  </span>
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 w-full px-3.5 py-2.5 bg-[#8B1E42]/10 border border-[#8B1E42]/25 rounded-xl text-sm text-[#8B1E42]">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                No doctor is currently accepting appointments.
+              </div>
+            )}
           </div>
 
           <div>
@@ -356,6 +389,81 @@ export default function BookAppointment() {
                 placeholder="Reason for visit..."
                 className="w-full pl-10 pr-4 py-2.5 bg-[#EDE3D8] border border-[#DCCFBF] rounded-xl text-sm text-[#3D2E28] placeholder-[#B8A694] focus:outline-none focus:ring-2 focus:ring-[#8B1E42]/20 focus:border-[#8B1E42]"
               />
+            </div>
+          </div>
+
+          <div className="md:col-span-2 lg:col-span-4">
+            <div className="rounded-2xl border border-[#8B1E42]/20 bg-gradient-to-br from-[#8B1E42]/[0.07] to-[#C08A3E]/[0.05] p-4 sm:p-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-9 h-9 rounded-xl bg-[#8B1E42] text-white flex items-center justify-center shrink-0">
+                    <Smartphone className="w-5 h-5" />
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-bold text-[#3D2E28]">
+                      How to Pay via GCash
+                    </h3>
+                    <p className="text-xs text-[#8B7562]">
+                      Pay the half-payment to secure your appointment slot.
+                    </p>
+                  </div>
+                </div>
+                {halfPaymentAmount && (
+                  <span className="inline-flex items-center gap-1.5 self-start sm:self-auto px-3 py-1.5 rounded-full bg-[#8B1E42]/10 border border-[#8B1E42]/25 text-[#8B1E42] text-xs font-bold">
+                    Amount due: {halfPaymentAmount}
+                  </span>
+                )}
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-stretch gap-3 mb-4">
+                <div className="flex-1 rounded-xl bg-white/70 border border-[#DCCFBF] px-4 py-3">
+                  <p className="text-[11px] uppercase tracking-wider text-[#8B7562] font-semibold">
+                    GCash Number
+                  </p>
+                  <p className="text-lg font-bold text-[#3D2E28] tracking-wide">
+                    {GCASH.number}
+                  </p>
+                </div>
+                <div className="flex-1 rounded-xl bg-white/70 border border-[#DCCFBF] px-4 py-3">
+                  <p className="text-[11px] uppercase tracking-wider text-[#8B7562] font-semibold">
+                    Account Name
+                  </p>
+                  <p className="text-sm font-semibold text-[#3D2E28] mt-1">
+                    {GCASH.accountName}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={copyGcashNumber}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[#8B1E42] text-white text-sm font-semibold hover:bg-[#731836] transition shrink-0 cursor-pointer"
+                >
+                  {copiedGcash ? (
+                    <>
+                      <Check className="w-4 h-4" />
+                      Copied
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4" />
+                      Copy number
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <ol className="space-y-1.5 text-xs text-[#5E4C44]">
+                <li>
+                  1. Open your GCash app, tap <span className="font-semibold">Send Money</span>, then{" "}
+                  <span className="font-semibold">Express Send</span>.
+                </li>
+                <li>
+                  2. Enter the GCash number above and the exact amount due
+                  {halfPaymentAmount ? ` (${halfPaymentAmount})` : ""}.
+                </li>
+                <li>3. Confirm the account name and complete the transfer.</li>
+                <li>4. Take a screenshot of the confirmation receipt.</li>
+                <li>5. Upload the screenshot in the field below.</li>
+              </ol>
             </div>
           </div>
 
@@ -444,77 +552,6 @@ export default function BookAppointment() {
             </button>
           </div>
         </form>
-
-        {doctorList.length > 0 && (
-          <div className="mt-6 pt-5 border-t border-[#DCCFBF] overflow-x-auto">
-            <div className="text-xs font-semibold text-[#8B7562] uppercase tracking-wider mb-3">
-              Current available doctors
-            </div>
-            <div className="flex items-center gap-4 mb-3 text-[11px] font-medium text-[#8B7562]">
-              <span className="inline-flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[#52795A]" />
-                Available now
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[#C08A3E] animate-pulse" />
-                In consultation
-              </span>
-              <span className="inline-flex items-center gap-1.5 text-[#8B7562]/70">
-                <span className="w-2 h-2 rounded-full bg-[#8B7562]" />
-                Status nudges in real time
-              </span>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {doctorList.map((doc) => (
-                <button
-                  key={doc.user_id}
-                  type="button"
-                  onClick={() => {
-                    const nextId = String(doc.user_id);
-                    if (nextId === bookingDoctorId) return;
-                    setBookingDoctorId(nextId);
-                    setAvailableSlots([]);
-                    setSelectedSlot("");
-                    setLoadingSlots(true);
-                  }}
-                  className={`flex items-center gap-3 rounded-2xl border p-3.5 text-left transition ${
-                    bookingDoctorId === String(doc.user_id)
-                      ? "bg-[#8B1E42]/10 border-[#8B1E42]/40"
-                      : "bg-[#EDE3D8]/60 border-[#DCCFBF] hover:border-[#8B1E42]/40"
-                  }`}
-                >
-                  <span className="w-10 h-10 rounded-full bg-[#8B1E42] text-white flex items-center justify-center font-bold text-sm shrink-0">
-                    {(doc.display_name || doc.username || "D").charAt(0).toUpperCase()}
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block font-bold text-sm text-[#3D2E28] truncate">
-                      {doc.display_name || doc.username}
-                    </span>
-                    <span className="block text-xs text-[#8B7562] truncate">
-                      {doc.specialty || "General"} — Fee:{" "}
-                      {doc.consultation_fee
-                        ? `₱${parseFloat(doc.consultation_fee).toFixed(2)}`
-                        : "Not Set"}
-                    </span>
-                  </span>
-                  <span className="ml-auto shrink-0">
-                    {presenceOf(doc) === "in_consultation" ? (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#C08A3E]/10 text-[#C08A3E] border border-[#C08A3E]/25 text-[11px] font-semibold">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#C08A3E] animate-pulse" />
-                        In Consultation
-                      </span>
-                    ) : presenceOf(doc) === "available" ? (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#52795A]/10 text-[#52795A] border border-[#52795A]/25 text-[11px] font-semibold">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#52795A]" />
-                        Available
-                      </span>
-                    ) : null}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </section>
   );

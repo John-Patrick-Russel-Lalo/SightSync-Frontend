@@ -3,7 +3,6 @@ import { useAuth } from "../context/AuthContext";
 import {
   Bell,
   Shield,
-  ShieldCheck,
   Stethoscope,
   User,
   Palette,
@@ -15,16 +14,12 @@ import {
   Eye,
   Database,
   Users,
-  HeartPulse,
 } from "lucide-react";
 
 export default function SettingsPage() {
   const { user } = useAuth();
   const role = user?.role || "patient";
 
-  const [emailNotif, setEmailNotif] = useState(true);
-  const [smsNotif, setSmsNotif] = useState(false);
-  const [pushNotif, setPushNotif] = useState(true);
   const [theme, setTheme] = useState("light");
   const [language, setLanguage] = useState("en");
   const [twoFactor, setTwoFactor] = useState(false);
@@ -51,20 +46,12 @@ export default function SettingsPage() {
     window.setTimeout(() => setSaved(false), 2500);
   };
 
-  const roleInfo = {
-    admin: { label: "Admin", icon: ShieldCheck, blurb: "System-wide settings and permissions" },
-    doctor: { label: "Doctor", icon: Stethoscope, blurb: "Clinical and availability preferences" },
-    patient: { label: "Patient", icon: HeartPulse, blurb: "Privacy and appointment preferences" },
-  }[role] || { label: "Patient", icon: HeartPulse, blurb: "Privacy and appointment preferences" };
-
-  const RoleIcon = roleInfo.icon;
-
   return (
     <div className="space-y-6 sm:space-y-8 pb-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="min-w-0">
           <h2 className="text-xl sm:text-2xl font-bold text-stone-900">Settings</h2>
-          <p className="text-sm text-stone-600">Manage your preferences, security, and notifications.</p>
+          <p className="text-sm text-stone-600">Manage your account, security, and role preferences.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {saved && (
@@ -78,17 +65,6 @@ export default function SettingsPage() {
           >
             <Save className="w-4 h-4" /> Save Changes
           </button>
-        </div>
-      </div>
-
-      {/* Role Summary Banner */}
-      <div className="bg-[#F8F3EC] border border-[#DCD0C0] rounded-2xl p-4 sm:p-6 shadow-sm flex items-center gap-4">
-        <div className="p-3 bg-[#8B1E42]/10 text-[#8B1E42] rounded-2xl shrink-0">
-          <RoleIcon className="w-7 h-7" />
-        </div>
-        <div className="min-w-0">
-          <div className="text-base sm:text-lg font-bold text-stone-900 capitalize">{role} Settings</div>
-          <p className="text-sm text-stone-600">{roleInfo.blurb}</p>
         </div>
       </div>
 
@@ -139,35 +115,6 @@ export default function SettingsPage() {
             <option value="dark">Dark</option>
             <option value="system">System</option>
           </select>
-        </SettingRow>
-      </SettingsCard>
-
-      {/* Notifications (all roles) */}
-      <SettingsCard
-        title="Notifications"
-        description="Choose how you want to be notified."
-        icon={<Bell className="w-4 h-4 text-[#8B1E42]" />}
-      >
-        <SettingRow
-          icon={<Bell className="w-4 h-4" />}
-          title="Email notifications"
-          description="Receive important updates by email"
-        >
-          <Toggle checked={emailNotif} onChange={setEmailNotif} />
-        </SettingRow>
-        <SettingRow
-          icon={<Bell className="w-4 h-4" />}
-          title="SMS notifications"
-          description="Receive alerts via text message"
-        >
-          <Toggle checked={smsNotif} onChange={setSmsNotif} />
-        </SettingRow>
-        <SettingRow
-          icon={<Bell className="w-4 h-4" />}
-          title="Push notifications"
-          description="In-app push notifications"
-        >
-          <Toggle checked={pushNotif} onChange={setPushNotif} />
         </SettingRow>
       </SettingsCard>
 

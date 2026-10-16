@@ -34,7 +34,10 @@ export const AuthProvider = ({ children }) => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({
+        email: String(email ?? "").trim(),
+        password: String(password ?? "").trim(),
+      }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || "Login failed");
@@ -47,7 +50,13 @@ export const AuthProvider = ({ children }) => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify(formData),
+      body: JSON.stringify({
+        ...formData,
+        firstName: String(formData?.firstName ?? "").trim(),
+        lastName: String(formData?.lastName ?? "").trim(),
+        email: String(formData?.email ?? "").trim(),
+        password: String(formData?.password ?? "").trim(),
+      }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || "Registration failed");

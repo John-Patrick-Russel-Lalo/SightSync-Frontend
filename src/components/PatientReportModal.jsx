@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   X,
   Loader2,
@@ -9,8 +10,8 @@ import {
   Mail,
   Phone,
   Droplet,
-  Shield,
   ShieldAlert,
+  Package,
   Calendar,
   Clock,
   Stethoscope,
@@ -30,6 +31,8 @@ const STATUS_LABELS = {
   cancelled: "Cancelled",
   declined: "Declined",
   no_show: "No Show",
+  voided: "Voided",
+  refunded: "Refunded",
 };
 
 const statusLabel = (status) => STATUS_LABELS[status] || status || "Unknown";
@@ -46,6 +49,8 @@ const STATUS_BADGE_STYLES = {
   cancelled: "bg-rose-100 text-rose-800 border-rose-200",
   declined: "bg-rose-100 text-rose-800 border-rose-200",
   no_show: "bg-rose-100 text-rose-800 border-rose-200",
+  voided: "bg-stone-100 text-stone-600 border-stone-300",
+  refunded: "bg-[#C08A3E]/10 text-[#C08A3E] border-[#C08A3E]/25",
 };
 
 function StatusBadge({ status }) {
@@ -150,6 +155,7 @@ export default function PatientReportModal({ patientId, patientName = "Patient",
   const summary = report?.summary || {};
   const appointments = report?.appointments || [];
   const notes = report?.notes || [];
+  const orders = report?.orders || [];
 
   async function handleGenerateSummary() {
     if (summaryLoading) return;
@@ -181,8 +187,8 @@ export default function PatientReportModal({ patientId, patientName = "Patient",
     }
   }
 
-  return (
-    <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 print:bg-white print:p-0 print:items-start">
+  return createPortal(
+    <div className="report-print-dialog fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 print:bg-white print:p-0 print:items-start">
       <div className="bg-[#F8F3EC] border border-[#DCD0C0] rounded-2xl w-full max-w-3xl shadow-xl overflow-hidden flex flex-col max-h-[90vh] print:max-h-none print:border-0 print:rounded-none print:shadow-none">
         {/* Header */}
         <div className="p-4 sm:p-5 border-b border-[#EBE3D8] bg-[#FAF7F2] flex items-center justify-between gap-3 print:hidden">
@@ -321,8 +327,9 @@ export default function PatientReportModal({ patientId, patientName = "Patient",
                 ) : (
                   <p className="text-xs italic text-stone-500">
                     Generate a quick plain-language overview of this patient's visit history,
-                    payments, and clinical notes. Limited to one generated overview per patient
-                    per week — the stored copy stays readable until it expires.
+                    store purchases, payments, and clinical notes. Limited to one generated
+                    overview per patient per week — the stored copy stays readable until it
+                    expires.
                   </p>
                 )}
               </section>
@@ -339,7 +346,6 @@ export default function PatientReportModal({ patientId, patientName = "Patient",
                   <InfoRow icon={<Calendar className="w-3 h-3 text-[#8B1E42]" />} label="Date of Birth" value={patient.date_of_birth ? formatWallClockDate(patient.date_of_birth) : null} />
                   <InfoRow icon={<User className="w-3 h-3 text-[#8B1E42]" />} label="Gender" value={patient.gender} />
                   <InfoRow icon={<Droplet className="w-3 h-3 text-[#8B1E42]" />} label="Blood Type" value={patient.blood_type} />
-                  <InfoRow icon={<Shield className="w-3 h-3 text-[#52795A]" />} label="Insurance" value={patient.insurance_provider} />
                   <InfoRow icon={<ShieldAlert className="w-3 h-3 text-[#C08A3E]" />} label="Emergency Contact" value={`${patient.emergency_contact_name || ""}${patient.emergency_contact_phone ? ` (${patient.emergency_contact_phone})` : ""}`} />
                 </div>
               </section>
@@ -349,7 +355,7 @@ export default function PatientReportModal({ patientId, patientName = "Patient",
                 <h4 className="font-bold text-stone-900 text-sm mb-3 flex items-center gap-2">
                   <Stethoscope className="w-4 h-4 text-[#8B1E42]" /> Clinical Summary
                 </h4>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
                   <div className="p-3 bg-[#F2EAE1] border border-[#E3D8CC] rounded-xl text-center">
                     <div className="text-2xl font-extrabold text-[#8B1E42]">{summary.totalAppointments ?? 0}</div>
                     <div className="text-[11px] font-medium text-stone-500 uppercase tracking-wider mt-0.5">Total Visits</div>
@@ -364,9 +370,13 @@ export default function PatientReportModal({ patientId, patientName = "Patient",
                   </div>
                   <div className="p-3 bg-[#F2EAE1] border border-[#E3D8CC] rounded-xl text-center">
                     <div className="text-2xl font-extrabold text-[#C08A3E]">
-                      {Number(summary.totalPaid || 0).toLocaleString("en-PH", { style: "currency", currency: "PHP", maximumFractionDigits: 0 })}
+                      {Number(summary.totalSpend ?? (summary.totalPaid || 0) + (summary.totalOrderSpend || 0)).toLocaleString("en-PH", { style: "currency", currency: "PHP", maximumFractionDigits: 0 })}
                     </div>
-                    <div className="text-[11px] font-medium text-stone-500 uppercase tracking-wider mt-0.5">Total Paid</div>
+                    <div className="text-[11px] font-medium text-stone-500 uppercase tracking-wider mt-0.5">Total Spend</div>
+                  </div>
+                  <div className="p-3 bg-[#F2EAE1] border border-[#E3D8CC] rounded-xl text-center">
+                    <div className="text-2xl font-extrabold text-[#8B1E42]">{summary.totalOrders ?? 0}</div>
+                    <div className="text-[11px] font-medium text-stone-500 uppercase tracking-wider mt-0.5">Orders</div>
                   </div>
                 </div>
               </section>
@@ -447,6 +457,52 @@ export default function PatientReportModal({ patientId, patientName = "Patient",
                 )}
               </section>
 
+              {/* Store orders */}
+              <section>
+                <h4 className="font-bold text-stone-900 text-sm mb-3 flex items-center gap-2">
+                  <Package className="w-4 h-4 text-[#8B1E42]" /> Store Orders
+                </h4>
+                {orders.length > 0 ? (
+                  <div className="space-y-2.5">
+                    {orders.map((order) => (
+                      <div key={order.id} className="p-3.5 bg-[#FAF7F2] border border-[#E3D8CC] rounded-xl">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-semibold text-stone-900 flex items-center gap-1.5">
+                            <Package className="w-3.5 h-3.5 text-[#8B1E42]" />
+                            {order.receipt_number}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-[#8B1E42]">
+                              ₱{(Number(order.total) || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 })}
+                            </span>
+                            <StatusBadge status={order.status} />
+                          </div>
+                        </div>
+                        <div className="text-[11px] text-stone-500 mt-1">
+                          {formatWallClockDateTime(order.created_at)}
+                          {order.payment_method ? ` • ${order.payment_method}` : ""}
+                          {order.sold_by_name ? ` • served by ${order.sold_by_name}` : ""}
+                        </div>
+                        {order.items?.length > 0 && (
+                          <ul className="mt-2 space-y-1 border-t border-[#E3D8CC] pt-2">
+                            {order.items.map((item) => (
+                              <li key={item.id} className="text-xs text-stone-600 flex items-center justify-between gap-2">
+                                <span className="truncate">{item.product_name} × {item.quantity}</span>
+                                <span className="shrink-0">₱{(Number(item.line_total) || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs italic text-stone-500 p-3 bg-[#FAF7F2] border border-[#E3D8CC] rounded-xl">
+                    No store purchases recorded for this patient.
+                  </p>
+                )}
+              </section>
+
               {/* Footer */}
               <div className="pt-4 border-t border-[#E3D8CC] flex items-center justify-between text-[11px] text-stone-500 print:flex">
                 <span>End of report • SightSync Optometry Clinic</span>
@@ -456,6 +512,7 @@ export default function PatientReportModal({ patientId, patientName = "Patient",
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -357,12 +357,12 @@ export default function PatientReportModal({ patientId, patientName = "Patient",
                 </h4>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
                   <div className="p-3 bg-[#F2EAE1] border border-[#E3D8CC] rounded-xl text-center">
-                    <div className="text-2xl font-extrabold text-[#8B1E42]">{summary.totalAppointments ?? 0}</div>
+                    <div className="text-2xl font-extrabold text-[#8B1E42]">{summary.completedAppointments ?? 0}</div>
                     <div className="text-[11px] font-medium text-stone-500 uppercase tracking-wider mt-0.5">Total Visits</div>
                   </div>
                   <div className="p-3 bg-[#F2EAE1] border border-[#E3D8CC] rounded-xl text-center">
-                    <div className="text-2xl font-extrabold text-emerald-700">{summary.completedAppointments ?? 0}</div>
-                    <div className="text-[11px] font-medium text-stone-500 uppercase tracking-wider mt-0.5">Completed</div>
+                    <div className="text-2xl font-extrabold text-rose-700">{summary.cancelledAppointments ?? 0}</div>
+                    <div className="text-[11px] font-medium text-stone-500 uppercase tracking-wider mt-0.5">Cancelled</div>
                   </div>
                   <div className="p-3 bg-[#F2EAE1] border border-[#E3D8CC] rounded-xl text-center">
                     <div className="text-2xl font-extrabold text-stone-700">{summary.consultationNotes ?? 0}</div>

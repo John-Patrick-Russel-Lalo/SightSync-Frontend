@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext"; // Adjust path if necessary
 import {
+  formatWallClockDate,
   formatWallClockDateTime,
   toLocalDateString,
   toLocalDateStringFromValue,
@@ -40,6 +41,16 @@ const APPOINTMENT_STATUS_LABELS = {
   declined: "Declined",
   no_show: "No Show",
 };
+
+// Appointments can only be scheduled from today up to this far ahead, so the
+// schedule stays close to the clinic's real operating horizon.
+const BOOKING_MIN_DATE = toLocalDateString(new Date());
+
+const BOOKING_MAX_DATE = (() => {
+  const max = new Date();
+  max.setMonth(max.getMonth() + 2);
+  return toLocalDateString(max);
+})();
 
 export default function ScheduleAppointmentPage() {
   const { user } = useAuth(); // Logged in user context
@@ -458,6 +469,11 @@ const appointmentDatesSet = useMemo(() => {
 
     if (!selectedDoctorId) return setError("No doctor is currently available to schedule.");
     if (!selectedDate) return setError("Please select a date.");
+    if (selectedDate > BOOKING_MAX_DATE) {
+      return setError(
+        `Appointments can only be scheduled up to ${formatWallClockDate(BOOKING_MAX_DATE)}.`
+      );
+    }
     if (!selectedSlot) return setError("Please select an available time slot.");
     if (!isPatientRole && !patientIdToUse) {
       return setError("Please search and select a patient.");
@@ -616,10 +632,14 @@ const appointmentDatesSet = useMemo(() => {
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
                   required
-                  min={toLocalDateString(new Date())}
+                  min={BOOKING_MIN_DATE}
+                  max={BOOKING_MAX_DATE}
                   className="w-full pl-10 pr-4 py-2 bg-[#F2EAE1] border border-[#DCD0C0] rounded-xl text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[#8B1E42]/20 focus:border-[#8B1E42]"
                 />
               </div>
+              <p className="text-[11px] text-stone-500 mt-1.5">
+                Schedulable up to {formatWallClockDate(BOOKING_MAX_DATE)}.
+              </p>
             </div>
           </div>
 

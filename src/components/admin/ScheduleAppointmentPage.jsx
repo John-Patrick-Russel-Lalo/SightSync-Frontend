@@ -98,6 +98,10 @@ export default function ScheduleAppointmentPage() {
   const [rejectingPaymentId, setRejectingPaymentId] = useState(null);
   const [rejectionReason, setRejectionReason] = useState("");
 
+  // Decline-with-reason States
+  const [decliningAppointmentId, setDecliningAppointmentId] = useState(null);
+  const [declineNote, setDeclineNote] = useState("");
+
   // Auto-set patient if logged-in user is a patient
   useEffect(() => {
     if (user && user.role === "patient") {
@@ -534,13 +538,13 @@ const appointmentDatesSet = useMemo(() => {
     }
   };
 
-  const handleUpdateStatus = async (aptId, newStatus) => {
+  const handleUpdateStatus = async (aptId, newStatus, reason = null) => {
     if (!window.confirm(`Are you sure you want to ${newStatus === 'scheduled' ? 'approve' : 'decline'} this appointment?`)) return;
 
     try {
       const res = await fetchWithCredentials(`${API_APPOINTMENTS_BASE}/${aptId}/status`, {
         method: "PATCH",
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({ status: newStatus, reason }),
       });
       const data = await res.json();
       
@@ -549,6 +553,8 @@ const appointmentDatesSet = useMemo(() => {
       }
 
       setSuccessMessage(`Appointment successfully ${newStatus === 'scheduled' ? 'approved' : 'declined'}.`);
+      setDecliningAppointmentId(null);
+      setDeclineNote("");
       fetchExistingAppointments();
     } catch (err) {
       setError(err.message);
@@ -1077,34 +1083,79 @@ const appointmentDatesSet = useMemo(() => {
                     </div>
 
                     {user?.role === "admin" && apt.status === "pending" && (
-                      <div className="pt-2 flex items-center justify-end gap-2 border-t border-[#E3D8CC] mt-2">
-                        <button
-                          type="button"
-                          onClick={() => handleUpdateStatus(apt.id, 'declined')}
-                          className="px-3 py-1 text-[11px] font-semibold text-rose-700 bg-rose-100 hover:bg-rose-200 rounded-lg transition"
-                        >
-                          Decline
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleUpdateStatus(apt.id, 'scheduled')}
-                          disabled={!isPaymentCleared(apt)}
-                          title={
-                            isPaymentCleared(apt)
-                              ? "Approve this appointment"
-                              : "Review and verify the patient's half-payment proof before approving"
-                          }
-                          className="px-3 py-1 text-[11px] font-semibold text-white bg-[#8B1E42] hover:bg-[#731836] disabled:bg-stone-300 disabled:text-stone-500 disabled:cursor-not-allowed rounded-lg shadow-sm transition inline-flex items-center gap-1.5"
-                        >
-                          {isPaymentCleared(apt) ? (
-                            "Approve"
-                          ) : (
-                            <>
-                              <ShieldCheck className="w-3 h-3" />
-                              Verify Payment First
-                            </>
-                          )}
-                        </button>
+                      <div className="pt-2 border-t border-[#E3D8CC] mt-2 space-y-2">
+                        {decliningAppointmentId === apt.id ? (
+                          <div className="space-y-2">
+                            <label className="block text-xs font-semibold text-stone-700">
+                              Reason for declining (sent to patient)
+                            </label>
+                            <textarea
+                              rows="2"
+                              value={declineNote}
+                              onChange={(e) => setDeclineNote(e.target.value)}
+                              placeholder="e.g. The requested time slot is no longer available."
+                              className="w-full px-3 py-2 bg-[#F2EAE1] border border-[#DCD0C0] rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-[#8B1E42]/20 focus:border-[#8B1E42]"
+                            />
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setDecliningAppointmentId(null);
+                                  setDeclineNote("");
+                                }}
+                                className="px-3 py-1.5 text-[11px] font-semibold text-stone-600 bg-[#EDE3D8] hover:bg-[#E2D6C7] rounded-lg transition"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleUpdateStatus(
+                                    apt.id,
+                                    "declined",
+                                    declineNote.trim() || null
+                                  )
+                                }
+                                className="px-3 py-1.5 text-[11px] font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-lg transition"
+                              >
+                                Confirm Decline
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setDeclineNote("");
+                                setDecliningAppointmentId(apt.id);
+                              }}
+                              className="px-3 py-1 text-[11px] font-semibold text-rose-700 bg-rose-100 hover:bg-rose-200 rounded-lg transition"
+                            >
+                              Decline
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateStatus(apt.id, 'scheduled')}
+                              disabled={!isPaymentCleared(apt)}
+                              title={
+                                isPaymentCleared(apt)
+                                  ? "Approve this appointment"
+                                  : "Review and verify the patient's half-payment proof before approving"
+                              }
+                              className="px-3 py-1 text-[11px] font-semibold text-white bg-[#8B1E42] hover:bg-[#731836] disabled:bg-stone-300 disabled:text-stone-500 disabled:cursor-not-allowed rounded-lg shadow-sm transition inline-flex items-center gap-1.5"
+                            >
+                              {isPaymentCleared(apt) ? (
+                                "Approve"
+                              ) : (
+                                <>
+                                  <ShieldCheck className="w-3 h-3" />
+                                  Verify Payment First
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

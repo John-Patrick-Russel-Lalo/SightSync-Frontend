@@ -138,6 +138,7 @@ export default function AppointmentArchive({ scope = "my", users = null }) {
         doctorName.toLowerCase().includes(term) ||
         patientName.toLowerCase().includes(term) ||
         (a.notes && a.notes.toLowerCase().includes(term)) ||
+        (a.decline_reason && a.decline_reason.toLowerCase().includes(term)) ||
         formatWallClockDateTime(a.start_time || a.archived_at).toLowerCase().includes(term);
       return matchesStatus && matchesSearch;
     });
@@ -283,9 +284,16 @@ export default function AppointmentArchive({ scope = "my", users = null }) {
                   <td className="px-4 sm:px-6 py-4 max-w-[240px]">
                     <div className="flex items-start gap-2">
                       <FileText className="w-3.5 h-3.5 text-stone-400 shrink-0 mt-0.5" />
-                      <span className="text-stone-600 italic truncate">
-                        {a.notes ? `"${a.notes}"` : "No notes provided"}
-                      </span>
+                      <div className="min-w-0">
+                        <span className="text-stone-600 italic truncate">
+                          {a.notes ? `"${a.notes}"` : "No notes provided"}
+                        </span>
+                        {a.decline_reason && (
+                          <p className="text-xs text-[#8B1E42] mt-1">
+                            Declined: {a.decline_reason}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </td>
                   <td className="px-4 sm:px-6 py-4 whitespace-nowrap">

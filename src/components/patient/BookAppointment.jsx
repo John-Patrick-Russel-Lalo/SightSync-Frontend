@@ -15,7 +15,7 @@ import {
   Copy,
   Check,
 } from "lucide-react";
-import { parseWallClock, toLocalDateString } from "../../utils/dateTime";
+import { formatWallClockDate, parseWallClock, toLocalDateString } from "../../utils/dateTime";
 import { useNotifications } from "../../context/NotificationContext";
 
 const API_URL = import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500";
@@ -39,6 +39,16 @@ function formatPeso(value) {
   const amount = Number(value);
   return Number.isFinite(amount) && amount > 0 ? `₱${amount.toFixed(2)}` : null;
 }
+
+// Appointments can only be booked from today up to this far ahead, so the
+// schedule stays close to the clinic's real operating horizon.
+const BOOKING_MIN_DATE = toLocalDateString(new Date());
+
+const BOOKING_MAX_DATE = (() => {
+  const max = new Date();
+  max.setMonth(max.getMonth() + 2);
+  return toLocalDateString(max);
+})();
 
 export default function BookAppointment() {
   const { doctorStatuses } = useNotifications();
@@ -208,6 +218,13 @@ export default function BookAppointment() {
       });
       return;
     }
+    if (bookingDateStr > BOOKING_MAX_DATE) {
+      setBookingMessage({
+        type: "error",
+        text: `Appointments can only be booked up to ${formatWallClockDate(BOOKING_MAX_DATE)}.`,
+      });
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -333,7 +350,8 @@ export default function BookAppointment() {
               <input
                 type="date"
                 value={bookingDateStr}
-                min={toLocalDateString(new Date())}
+                min={BOOKING_MIN_DATE}
+                max={BOOKING_MAX_DATE}
                 onChange={(e) => {
                   setBookingDate(parseWallClock(e.target.value) ?? new Date());
                   if (bookingDoctorId) setLoadingSlots(true);
@@ -343,6 +361,9 @@ export default function BookAppointment() {
                 required
               />
             </div>
+            <p className="text-[11px] text-[#8B7562] mt-1.5">
+              Appointments can be booked up to {formatWallClockDate(BOOKING_MAX_DATE)}.
+            </p>
           </div>
 
           <div>

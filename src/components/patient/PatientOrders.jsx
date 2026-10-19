@@ -74,6 +74,9 @@ function OrderCard({ order }) {
             {order.receipt_number}
           </span>
         </div>
+        <span className="text-xs text-stone-500 order-3 w-full sm:w-auto sm:order-none">
+          Ordered: {formatWallClockDateTime(order.created_at)}
+        </span>
         <span
           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${meta.badge}`}
         >
@@ -89,9 +92,6 @@ function OrderCard({ order }) {
             <Check className="w-3 h-3" />
           </span>
           <span className="font-semibold text-stone-700">Ordered</span>
-          <span className="text-stone-500 hidden sm:inline">
-            {formatWallClockDateTime(order.created_at)}
-          </span>
         </div>
         <div className="h-px flex-1 bg-[#DCD0C0]" />
         <div className="flex items-center gap-1.5 shrink-0">

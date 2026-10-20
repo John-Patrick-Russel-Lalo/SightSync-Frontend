@@ -355,30 +355,38 @@ export default function PatientReportModal({ patientId, patientName = "Patient",
                 <h4 className="font-bold text-stone-900 text-sm mb-3 flex items-center gap-2">
                   <Stethoscope className="w-4 h-4 text-[#8B1E42]" /> Clinical Summary
                 </h4>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
-                  <div className="p-3 bg-[#F2EAE1] border border-[#E3D8CC] rounded-xl text-center">
-                    <div className="text-2xl font-extrabold text-[#8B1E42]">{summary.completedAppointments ?? 0}</div>
-                    <div className="text-[11px] font-medium text-stone-500 uppercase tracking-wider mt-0.5">Total Visits</div>
-                  </div>
-                  <div className="p-3 bg-[#F2EAE1] border border-[#E3D8CC] rounded-xl text-center">
-                    <div className="text-2xl font-extrabold text-rose-700">{summary.cancelledAppointments ?? 0}</div>
-                    <div className="text-[11px] font-medium text-stone-500 uppercase tracking-wider mt-0.5">Cancelled</div>
-                  </div>
-                  <div className="p-3 bg-[#F2EAE1] border border-[#E3D8CC] rounded-xl text-center">
-                    <div className="text-2xl font-extrabold text-stone-700">{summary.consultationNotes ?? 0}</div>
-                    <div className="text-[11px] font-medium text-stone-500 uppercase tracking-wider mt-0.5">Notes</div>
-                  </div>
-                  <div className="p-3 bg-[#F2EAE1] border border-[#E3D8CC] rounded-xl text-center">
-                    <div className="text-2xl font-extrabold text-[#C08A3E]">
-                      {Number(summary.totalSpend ?? (summary.totalPaid || 0) + (summary.totalOrderSpend || 0)).toLocaleString("en-PH", { style: "currency", currency: "PHP", maximumFractionDigits: 0 })}
-                    </div>
-                    <div className="text-[11px] font-medium text-stone-500 uppercase tracking-wider mt-0.5">Total Spend</div>
-                  </div>
-                  <div className="p-3 bg-[#F2EAE1] border border-[#E3D8CC] rounded-xl text-center">
-                    <div className="text-2xl font-extrabold text-[#8B1E42]">{summary.totalOrders ?? 0}</div>
-                    <div className="text-[11px] font-medium text-stone-500 uppercase tracking-wider mt-0.5">Orders</div>
-                  </div>
-                </div>
+                <table className="w-full text-sm border border-[#E3D8CC]">
+                  <thead>
+                    <tr className="bg-[#F2EAE1]">
+                      <th className="px-3 py-2 text-left font-semibold text-stone-700 border-b border-[#E3D8CC]">Metric</th>
+                      <th className="px-3 py-2 text-right font-semibold text-stone-700 border-b border-[#E3D8CC]">Value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-b border-[#E3D8CC]">
+                      <td className="px-3 py-2 text-stone-700">Total Visits</td>
+                      <td className="px-3 py-2 text-right font-semibold text-[#8B1E42]">{summary.completedAppointments ?? 0}</td>
+                    </tr>
+                    <tr className="border-b border-[#E3D8CC]">
+                      <td className="px-3 py-2 text-stone-700">Cancelled</td>
+                      <td className="px-3 py-2 text-right font-semibold text-rose-700">{summary.cancelledAppointments ?? 0}</td>
+                    </tr>
+                    <tr className="border-b border-[#E3D8CC]">
+                      <td className="px-3 py-2 text-stone-700">Notes</td>
+                      <td className="px-3 py-2 text-right font-semibold text-stone-700">{summary.consultationNotes ?? 0}</td>
+                    </tr>
+                    <tr className="border-b border-[#E3D8CC]">
+                      <td className="px-3 py-2 text-stone-700">Total Spend</td>
+                      <td className="px-3 py-2 text-right font-semibold text-[#C08A3E]">
+                        {Number(summary.totalSpend ?? (summary.totalPaid || 0) + (summary.totalOrderSpend || 0)).toLocaleString("en-PH", { style: "currency", currency: "PHP", maximumFractionDigits: 0 })}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="px-3 py-2 text-stone-700">Orders</td>
+                      <td className="px-3 py-2 text-right font-semibold text-[#8B1E42]">{summary.totalOrders ?? 0}</td>
+                    </tr>
+                  </tbody>
+                </table>
               </section>
 
               {/* Consultation notes */}

@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   Calendar,
   CalendarPlus,
+  ChevronDown,
   Clock,
   Stethoscope,
   Loader2,
@@ -14,6 +15,7 @@ import {
   Smartphone,
   Copy,
   Check,
+  QrCode,
 } from "lucide-react";
 import { formatWallClockDate, parseWallClock, toLocalDateString } from "../../utils/dateTime";
 import { useNotifications } from "../../context/NotificationContext";
@@ -31,8 +33,11 @@ const ACCEPTED_PAYMENT_PROOF_TYPES = [
 // GCash details shown to the patient before they upload their half-payment proof.
 // Update these values to match the clinic's receiving account.
 const GCASH = {
-  number: "0917 000 0000",
-  accountName: "SightSync Optical Clinic",
+  number: "09977261911",
+  accountName: "MA*C LE***R M.",
+  // Temporary placeholder. Drop the clinic's real GCash QR PNG in
+  // public/gcash-qr.png (or point this at another file) when it is ready.
+  qrImage: "/gcash-qr.png",
 };
 
 function formatPeso(value) {
@@ -64,8 +69,34 @@ export default function BookAppointment() {
   const [submitting, setSubmitting] = useState(false);
   const [bookingMessage, setBookingMessage] = useState(null);
   const [copiedGcash, setCopiedGcash] = useState(false);
+  const [gcashOpen, setGcashOpen] = useState(false);
   const [loadingDoctors, setLoadingDoctors] = useState(true);
   const fileInputRef = useRef(null);
+  const [myAppointments, setMyAppointments] = useState([]);
+
+  // The patient's own requests. A pending request does not take the slot away
+  // from everybody else, so the slot stays selectable; it is only marked so the
+  // patient cannot send the very same request twice.
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch(`${API_URL}/appointments/my`, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+    })
+      .then((res) => (res.ok ? res.json() : { appointments: [] }))
+      .then((data) => {
+        if (!cancelled) setMyAppointments(data.appointments || []);
+      })
+      .catch(() => {
+        if (!cancelled) setMyAppointments([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -103,10 +134,7 @@ export default function BookAppointment() {
   const bookingDateStr = toLocalDateString(bookingDate);
 
   useEffect(() => {
-    if (!bookingDoctorId) {
-      setAvailableSlots([]);
-      return;
-    }
+    if (!bookingDoctorId) return;
 
     let cancelled = false;
 
@@ -136,6 +164,29 @@ export default function BookAppointment() {
   );
   const consultationFee = selectedDoctor?.consultation_fee;
   const halfPaymentAmount = formatPeso(Number(consultationFee) / 2);
+
+  // Without a doctor selected there is nothing to offer, so the slots of a
+  // previously selected doctor are never shown.
+  const visibleSlots = bookingDoctorId ? availableSlots : [];
+
+  // Slots this patient already has a pending request for on the chosen date.
+  const requestedSlots = useMemo(() => {
+    const slots = new Set();
+
+    for (const appointment of myAppointments) {
+      if ((appointment.status || "").toLowerCase() !== "pending") continue;
+      if (String(appointment.doctor_id) !== String(bookingDoctorId)) continue;
+
+      const start = parseWallClock(appointment.start_time);
+      if (!start || toLocalDateString(start) !== bookingDateStr) continue;
+
+      slots.add(
+        `${String(start.getHours()).padStart(2, "0")}:${String(start.getMinutes()).padStart(2, "0")}`
+      );
+    }
+
+    return slots;
+  }, [myAppointments, bookingDoctorId, bookingDateStr]);
 
   // Live presence pushed over the websocket: "available" | "in_consultation".
   const presenceOf = (doc) => doctorStatuses[String(doc.user_id)];
@@ -272,6 +323,18 @@ export default function BookAppointment() {
         const slotsData = await slotsRes.json();
         setAvailableSlots(slotsData.availableSlots || []);
       }
+
+      // Refresh the patient's own requests so the slot they just asked for is
+      // marked as requested instead of being offered again.
+      const myRes = await fetch(`${API_URL}/appointments/my`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+      if (myRes.ok) {
+        const myData = await myRes.json();
+        setMyAppointments(myData.appointments || []);
+      }
     } catch (err) {
       setBookingMessage({ type: "error", text: err.message });
     } finally {
@@ -361,9 +424,6 @@ export default function BookAppointment() {
                 required
               />
             </div>
-            <p className="text-[11px] text-[#8B7562] mt-1.5">
-              Appointments can be booked up to {formatWallClockDate(BOOKING_MAX_DATE)}.
-            </p>
           </div>
 
           <div>
@@ -375,7 +435,7 @@ export default function BookAppointment() {
               <select
                 value={selectedSlot}
                 onChange={(e) => setSelectedSlot(e.target.value)}
-                disabled={!bookingDoctorId || loadingSlots || availableSlots.length === 0}
+                disabled={!bookingDoctorId || loadingSlots || visibleSlots.length === 0}
                 className="w-full pl-10 pr-4 py-2.5 bg-[#EDE3D8] border border-[#DCCFBF] rounded-xl text-sm text-[#3D2E28] focus:outline-none focus:ring-2 focus:ring-[#8B1E42]/20 focus:border-[#8B1E42] cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
                 required
               >
@@ -384,17 +444,27 @@ export default function BookAppointment() {
                     ? "Select a doctor first"
                     : loadingSlots
                     ? "Checking availability..."
-                    : availableSlots.length === 0
+                    : visibleSlots.length === 0
                     ? "No available slots"
                     : "Select a time slot"}
                 </option>
-                {availableSlots.map((slot) => (
-                  <option key={slot} value={slot}>
-                    {slot}
-                  </option>
-                ))}
+                {visibleSlots.map((slot) => {
+                  const isRequested = requestedSlots.has(slot);
+                  return (
+                    <option key={slot} value={slot} disabled={isRequested}>
+                      {slot}
+                      {isRequested ? " — already requested" : ""}
+                    </option>
+                  );
+                })}
               </select>
             </div>
+            {requestedSlots.size > 0 && (
+              <p className="text-[11px] text-[#8B7562] mt-1.5">
+                Slots you already requested are marked. They stay open until an
+                admin approves the request.
+              </p>
+            )}
           </div>
 
           <div>
@@ -414,8 +484,13 @@ export default function BookAppointment() {
           </div>
 
           <div className="md:col-span-2 lg:col-span-4">
-            <div className="rounded-2xl border border-[#8B1E42]/20 bg-gradient-to-br from-[#8B1E42]/[0.07] to-[#C08A3E]/[0.05] p-4 sm:p-5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div className="rounded-2xl border border-[#8B1E42]/20 bg-gradient-to-br from-[#8B1E42]/[0.07] to-[#C08A3E]/[0.05] overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setGcashOpen((open) => !open)}
+                aria-expanded={gcashOpen}
+                className="w-full flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 sm:p-5 text-left cursor-pointer hover:bg-[#8B1E42]/[0.04] transition"
+              >
                 <div className="flex items-center gap-2.5">
                   <span className="w-9 h-9 rounded-xl bg-[#8B1E42] text-white flex items-center justify-center shrink-0">
                     <Smartphone className="w-5 h-5" />
@@ -429,62 +504,100 @@ export default function BookAppointment() {
                     </p>
                   </div>
                 </div>
-                {halfPaymentAmount && (
-                  <span className="inline-flex items-center gap-1.5 self-start sm:self-auto px-3 py-1.5 rounded-full bg-[#8B1E42]/10 border border-[#8B1E42]/25 text-[#8B1E42] text-xs font-bold">
-                    Amount due: {halfPaymentAmount}
-                  </span>
-                )}
-              </div>
-
-              <div className="flex flex-col sm:flex-row sm:items-stretch gap-3 mb-4">
-                <div className="flex-1 rounded-xl bg-white/70 border border-[#DCCFBF] px-4 py-3">
-                  <p className="text-[11px] uppercase tracking-wider text-[#8B7562] font-semibold">
-                    GCash Number
-                  </p>
-                  <p className="text-lg font-bold text-[#3D2E28] tracking-wide">
-                    {GCASH.number}
-                  </p>
-                </div>
-                <div className="flex-1 rounded-xl bg-white/70 border border-[#DCCFBF] px-4 py-3">
-                  <p className="text-[11px] uppercase tracking-wider text-[#8B7562] font-semibold">
-                    Account Name
-                  </p>
-                  <p className="text-sm font-semibold text-[#3D2E28] mt-1">
-                    {GCASH.accountName}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={copyGcashNumber}
-                  className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[#8B1E42] text-white text-sm font-semibold hover:bg-[#731836] transition shrink-0 cursor-pointer"
-                >
-                  {copiedGcash ? (
-                    <>
-                      <Check className="w-4 h-4" />
-                      Copied
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-4 h-4" />
-                      Copy number
-                    </>
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  {halfPaymentAmount && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#8B1E42]/10 border border-[#8B1E42]/25 text-[#8B1E42] text-xs font-bold">
+                      Amount due: {halfPaymentAmount}
+                    </span>
                   )}
-                </button>
-              </div>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/70 border border-[#DCCFBF] text-[#3D2E28] text-xs font-semibold">
+                    {gcashOpen ? "Hide" : "View"}
+                    <ChevronDown
+                      className={`w-4 h-4 transition-transform duration-200 ${
+                        gcashOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </span>
+                </div>
+              </button>
 
-              <ol className="space-y-1.5 text-xs text-[#5E4C44]">
-                <li>
-                  1. Open your GCash app, tap <span className="font-semibold">Send Money</span>, then{" "}
-                  <span className="font-semibold">Express Send</span>.
-                </li>
-                <li>
-                  2. Enter the GCash number above and the exact amount due
-                  {halfPaymentAmount ? ` (${halfPaymentAmount})` : ""}.
-                </li>
-                <li>3. Confirm the account name and complete the transfer.</li>
-                <li>4. Take a screenshot of the confirmation receipt.</li>
-                <li>5. Upload the screenshot in the field below.</li>
-              </ol>
+              {gcashOpen && (
+                <div className="px-4 sm:px-5 pb-4 sm:pb-5 border-t border-[#8B1E42]/15">
+                  <div className="flex flex-col lg:flex-row gap-5 pt-4">
+                    <div className="flex-1 space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-stretch gap-3">
+                        <div className="flex-1 rounded-xl bg-white/70 border border-[#DCCFBF] px-4 py-3">
+                          <p className="text-[11px] uppercase tracking-wider text-[#8B7562] font-semibold">
+                            GCash Number
+                          </p>
+                          <p className="text-lg font-bold text-[#3D2E28] tracking-wide">
+                            {GCASH.number}
+                          </p>
+                        </div>
+                        <div className="flex-1 rounded-xl bg-white/70 border border-[#DCCFBF] px-4 py-3">
+                          <p className="text-[11px] uppercase tracking-wider text-[#8B7562] font-semibold">
+                            Account Name
+                          </p>
+                          <p className="text-sm font-semibold text-[#3D2E28] mt-1">
+                            {GCASH.accountName}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={copyGcashNumber}
+                          className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[#8B1E42] text-white text-sm font-semibold hover:bg-[#731836] transition shrink-0 cursor-pointer"
+                        >
+                          {copiedGcash ? (
+                            <>
+                              <Check className="w-4 h-4" />
+                              Copied
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-4 h-4" />
+                              Copy number
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                      <ol className="space-y-1.5 text-xs text-[#5E4C44]">
+                        <li>
+                          1. Scan the QR code with the GCash app, or tap{" "}
+                          <span className="font-semibold">Scan QR</span> and point
+                          your camera at it.
+                        </li>
+                        <li>
+                          2. Alternatively, tap <span className="font-semibold">Send Money</span> then{" "}
+                          <span className="font-semibold">Express Send</span> and enter
+                          the GCash number above.
+                        </li>
+                        <li>
+                          3. Send the exact amount due
+                          {halfPaymentAmount ? ` (${halfPaymentAmount})` : ""}.
+                        </li>
+                        <li>4. Confirm the account name and complete the transfer.</li>
+                        <li>5. Take a screenshot of the confirmation receipt.</li>
+                        <li>6. Upload the screenshot in the field below.</li>
+                      </ol>
+                    </div>
+
+                    <div className="w-full lg:w-56 shrink-0">
+                      <div className="rounded-2xl bg-white border border-[#DCCFBF] p-3 shadow-sm">
+                        <img
+                          src={GCASH.qrImage}
+                          alt="GCash QR code for the half-payment"
+                          className="w-full aspect-square object-contain rounded-xl"
+                        />
+                        <p className="flex items-center justify-center gap-1.5 text-[11px] text-[#8B7562] mt-2.5">
+                          <QrCode className="w-3.5 h-3.5 shrink-0" />
+                          Scan to pay via GCash
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

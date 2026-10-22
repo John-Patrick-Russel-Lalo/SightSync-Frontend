@@ -12,12 +12,12 @@ import { User, CalendarHeart, CalendarPlus, Settings, Archive, Activity, Receipt
 
 export default function PatientDashboard() {
   const { user, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState("book");
 
   const navItems = [
+    { id: "book", label: "Book Appointment", icon: CalendarPlus },
     { id: "overview", label: "My Appointments", icon: CalendarHeart },
     { id: "availability", label: "Doctor Availability", icon: Activity },
-    { id: "book", label: "Book Appointment", icon: CalendarPlus },
     { id: "orders", label: "My Orders", icon: Receipt },
     { id: "archive", label: "Appointment Archive", icon: Archive },
     { id: "profile", label: "My Profile", icon: User, sectionEnd: true },

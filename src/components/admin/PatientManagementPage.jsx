@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { User, X, Loader2, Edit3, AlertCircle, Search, Calendar, Clock, FileText } from "lucide-react";
+import { User, X, Loader2, Edit3, AlertCircle, Search, FileText } from "lucide-react";
 import { formatWallClockDate, formatWallClockDateTime } from "../../utils/dateTime";
 import PatientReportModal from "../PatientReportModal";
 
 const API_PATIENTS_URL = `${import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500"}/patients`;
-const API_APPOINTMENTS_URL = `${import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500"}/appointments`;
+// Appointment history removed from admin view profile
 
 const inputClass =
   "w-full pl-4 pr-4 py-2.5 bg-[#F2EAE1] border border-[#DCD0C0] rounded-xl text-sm text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#8B1E42]/20 focus:border-[#8B1E42]";
@@ -64,8 +64,7 @@ export default function PatientManagementPage({ users: initialUsers, fetchWithCr
   const [loadingDetails, setLoadingDetails] = useState(false);
   
   // Appointment History State
-  const [appointments, setAppointments] = useState([]);
-  const [loadingAppointments, setLoadingAppointments] = useState(false);
+  // Appointment history removed from admin view profile (shown in Report)
 
   const [modalError, setModalError] = useState(null);
   const [tableError, setTableError] = useState(null);
@@ -74,6 +73,7 @@ export default function PatientManagementPage({ users: initialUsers, fetchWithCr
   const [editFormData, setEditFormData] = useState({});
   const [updating, setUpdating] = useState(false);
   const [updatingStatusId, setUpdatingStatusId] = useState(null);
+  const [activeMedicalTab, setActiveMedicalTab] = useState("examination");
 
   // Patient Report Modal State
   const [reportPatient, setReportPatient] = useState(null);
@@ -126,10 +126,8 @@ export default function PatientManagementPage({ users: initialUsers, fetchWithCr
     try {
       setSelectedPatientId(patientId);
       setLoadingDetails(true);
-      setLoadingAppointments(true);
       setModalError(null);
       setIsEditing(false);
-      setAppointments([]);
 
       // Fetch Profile Data
       const res = await fetchWithCredentials(`${API_PATIENTS_URL}/${patientId}`);
@@ -154,23 +152,9 @@ export default function PatientManagementPage({ users: initialUsers, fetchWithCr
         bloodType: profile.blood_type || "",
         emergencyContactName: profile.emergency_contact_name || "",
         emergencyContactPhone: profile.emergency_contact_phone || "",
-        insuranceProvider: profile.insurance_provider || "",
-        insurancePolicyNumber: profile.insurance_policy_number || "",
       });
 
-      // Fetch Patient Appointment History
-      try {
-        const apptRes = await fetchWithCredentials(`${API_APPOINTMENTS_URL}?patientId=${patientId}`);
-        if (apptRes.ok) {
-          const apptData = await apptRes.json().catch(() => ({}));
-          const apptList = Array.isArray(apptData) ? apptData : apptData.data || [];
-          setAppointments(apptList);
-        }
-      } catch (apptErr) {
-        console.error("Failed to fetch appointment history:", apptErr);
-      } finally {
-        setLoadingAppointments(false);
-      }
+      // Appointment history removed from admin view profile
 
     } catch (err) {
       setModalError(err.message);
@@ -207,8 +191,6 @@ export default function PatientManagementPage({ users: initialUsers, fetchWithCr
         blood_type: editFormData.bloodType,
         emergency_contact_name: editFormData.emergencyContactName,
         emergency_contact_phone: editFormData.emergencyContactPhone,
-        insurance_provider: editFormData.insuranceProvider,
-        insurance_policy_number: editFormData.insurancePolicyNumber,
       };
 
       setPatientDetails(updatedProfile);
@@ -534,24 +516,7 @@ export default function PatientManagementPage({ users: initialUsers, fetchWithCr
                           className={inputClass}
                         />
                       </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-2">Insurance Provider</label>
-                        <input
-                          type="text"
-                          value={editFormData.insuranceProvider || ""}
-                          onChange={(e) => setEditFormData({ ...editFormData, insuranceProvider: e.target.value })}
-                          className={inputClass}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-2">Insurance Policy Number</label>
-                        <input
-                          type="text"
-                          value={editFormData.insurancePolicyNumber || ""}
-                          onChange={(e) => setEditFormData({ ...editFormData, insurancePolicyNumber: e.target.value })}
-                          className={inputClass}
-                        />
-                      </div>
+
                     </div>
                   </form>
                 ) : (
@@ -591,74 +556,96 @@ export default function PatientManagementPage({ users: initialUsers, fetchWithCr
                         <span className="text-stone-500 font-medium">Phone Number</span>
                         <p className="font-semibold text-stone-800">{patientDetails.phone_number || "N/A"}</p>
                       </div>
-                      <div className="p-3 bg-[#FAF7F2] border border-[#E3D8CC] rounded-xl space-y-1">
+                      <div className="p-3 bg-[#FAF7F2] border border-[#E3D8CC] rounded-xl space-y-1 sm:col-span-2">
                         <span className="text-stone-500 font-medium">Emergency Contact</span>
                         <p className="font-semibold text-stone-800">
                           {patientDetails.emergency_contact_name || "N/A"}{" "}
                           {patientDetails.emergency_contact_phone && `(${patientDetails.emergency_contact_phone})`}
                         </p>
                       </div>
-                      <div className="p-3 bg-[#FAF7F2] border border-[#E3D8CC] rounded-xl space-y-1">
-                        <span className="text-stone-500 font-medium">Insurance Info</span>
-                        <p className="font-semibold text-stone-800">
-                          {patientDetails.insurance_provider || "N/A"}{" "}
-                          {patientDetails.insurance_policy_number && `- Policy #${patientDetails.insurance_policy_number}`}
-                        </p>
-                      </div>
                     </div>
 
-                    {/* Appointment History Section */}
-                    <div className="pt-2 border-t border-[#E3D8CC]">
-                      <h5 className="font-bold text-stone-900 text-sm mb-3 flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-[#8B1E42]" /> Appointment History
-                      </h5>
-                      {loadingAppointments ? (
-                        <div className="p-4 flex items-center justify-center gap-2 text-stone-500 text-xs">
-                          <Loader2 className="w-4 h-4 animate-spin text-[#8B1E42]" />
-                          <span>Fetching appointments...</span>
-                        </div>
-                      ) : appointments.length > 0 ? (
-                        <div className="space-y-2.5 max-h-52 overflow-y-auto pr-1">
-                          {appointments.map((appt) => (
-                            <div
-                              key={appt.id || appt.appointment_id}
-                              className="p-3 bg-[#FAF7F2] border border-[#E3D8CC] rounded-xl flex items-center justify-between text-xs gap-3"
-                            >
-                              <div className="space-y-1">
-                                <div className="flex items-center gap-2 font-medium text-stone-800">
-                                  <Clock className="w-3.5 h-3.5 text-stone-400 shrink-0" />
-                                  <span>
-                                    {appt.start_time || appt.appointment_date
-                                      ? formatWallClockDateTime(
-                                          appt.start_time || appt.appointment_date
-                                        )
-                                      : "Date unavailable"}
-                                  </span>
-                                </div>
-                                {(appt.doctor_name || appt.service_name || appt.reason) && (
-                                  <p className="text-stone-500">
-                                    {appt.doctor_name && `Dr. ${appt.doctor_name}`}
-                                    {appt.service_name && ` • ${appt.service_name}`}
-                                    {appt.reason && ` (${appt.reason})`}
-                                  </p>
-                                )}
-                              </div>
-                              <span
-                                className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${getAppointmentStatusStyle(
-                                  appt.status
-                                )}`}
-                              >
-                                {appt.status ? appt.status.charAt(0).toUpperCase() + appt.status.slice(1) : "Scheduled"}
-                              </span>
+                    <div className="pt-4 border-t border-[#E3D8CC] space-y-4">
+                      <h5 className="font-bold text-stone-900 text-sm">Medical Records</h5>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          onClick={() => setActiveMedicalTab("examination")}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition ${
+                            activeMedicalTab === "examination"
+                              ? "bg-[#8B1E42] text-white"
+                              : "bg-[#F2EAE1] text-stone-600 border border-[#DCD0C0] hover:bg-[#E2D6C7]"
+                          }`}
+                        >
+                          Eye Examination Records
+                        </button>
+                        <button
+                          onClick={() => setActiveMedicalTab("prescription")}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition ${
+                            activeMedicalTab === "prescription"
+                              ? "bg-[#8B1E42] text-white"
+                              : "bg-[#F2EAE1] text-stone-600 border border-[#DCD0C0] hover:bg-[#E2D6C7]"
+                          }`}
+                        >
+                          Prescription Management
+                        </button>
+                        <button
+                          onClick={() => setActiveMedicalTab("digital")}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition ${
+                            activeMedicalTab === "digital"
+                              ? "bg-[#8B1E42] text-white"
+                              : "bg-[#F2EAE1] text-stone-600 border border-[#DCD0C0] hover:bg-[#E2D6C7]"
+                          }`}
+                        >
+                          Digital Records & Report
+                        </button>
+                      </div>
+
+                      {activeMedicalTab === "examination" && (
+                        <div className="bg-[#FAF7F2] border border-[#E3D8CC] rounded-xl p-4 space-y-3 text-xs">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                              <span className="text-stone-500 font-medium">Case History</span>
+                              <p className="font-semibold text-stone-800">{patientDetails.case_history || "N/A"}</p>
                             </div>
-                          ))}
+                            <div className="space-y-1">
+                              <span className="text-stone-500 font-medium">Chief Complaint</span>
+                              <p className="font-semibold text-stone-800">{patientDetails.chief_complaint || "N/A"}</p>
+                            </div>
+                            <div className="space-y-1">
+                              <span className="text-stone-500 font-medium">Objective Findings</span>
+                              <p className="font-semibold text-stone-800">{patientDetails.objective_findings || "N/A"}</p>
+                            </div>
+                            <div className="space-y-1">
+                              <span className="text-stone-500 font-medium">Pupillary Distance (PD)</span>
+                              <p className="font-semibold text-stone-800">{patientDetails.pupillary_distance || "N/A"}</p>
+                            </div>
+                            <div className="space-y-1">
+                              <span className="text-stone-500 font-medium">Unaided Visual Acuity</span>
+                              <p className="font-semibold text-stone-800">{patientDetails.unaided_visual_acuity || "N/A"}</p>
+                            </div>
+                            <div className="space-y-1">
+                              <span className="text-stone-500 font-medium">Best Corrected Visual Acuity</span>
+                              <p className="font-semibold text-stone-800">{patientDetails.best_corrected_visual_acuity || "N/A"}</p>
+                            </div>
+                          </div>
                         </div>
-                      ) : (
-                        <p className="text-xs text-stone-500 p-3 bg-[#FAF7F2] border border-[#E3D8CC] rounded-xl text-center">
-                          No appointment history found for this patient.
-                        </p>
+                      )}
+
+                      {activeMedicalTab === "prescription" && (
+                        <div className="bg-[#FAF7F2] border border-[#E3D8CC] rounded-xl p-4 text-xs">
+                          <span className="text-stone-500 font-medium">Prescription (Rx)</span>
+                          <p className="font-semibold text-stone-800 mt-1 whitespace-pre-wrap">{patientDetails.prescription_rx || patientDetails.rx || "N/A"}</p>
+                        </div>
+                      )}
+
+                      {activeMedicalTab === "digital" && (
+                        <div className="bg-[#FAF7F2] border border-[#E3D8CC] rounded-xl p-4 text-xs">
+                          <p className="text-stone-600">Use the Report button to view full clinical report.</p>
+                        </div>
                       )}
                     </div>
+
+
                   </div>
                 )
               ) : null}
@@ -689,15 +676,16 @@ export default function PatientManagementPage({ users: initialUsers, fetchWithCr
                     </button>
                   </>
                 ) : (
-                  <button
-                    onClick={() => {
-                      setIsEditing(true);
-                      setModalError(null);
-                    }}
-                    className="flex items-center gap-1.5 bg-[#8B1E42] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#731836] transition shadow-sm"
-                  >
-                    <Edit3 className="w-3.5 h-3.5" /> Edit Profile
-                  </button>
+              <button
+                onClick={() => {
+                  setIsEditing(true);
+                  setActiveMedicalTab("examination");
+                  setModalError(null);
+                }}
+                className="flex items-center gap-1.5 bg-[#8B1E42] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#731836] transition shadow-sm"
+              >
+                <Edit3 className="w-3.5 h-3.5" /> Edit Profile
+              </button>
                 )}
               </div>
             )}

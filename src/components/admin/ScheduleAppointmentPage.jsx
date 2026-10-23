@@ -24,6 +24,7 @@ import { useAuth } from "../../context/AuthContext"; // Adjust path if necessary
 import {
   formatWallClockDate,
   formatWallClockDateTime,
+  parseWallClock,
   toLocalDateString,
   toLocalDateStringFromValue,
   wallClockTimeMs,
@@ -410,6 +411,27 @@ export default function ScheduleAppointmentPage() {
       });
   }, [appointments, apptSearchTerm, apptStatusFilter, selectedCalendarDate]);
 
+  // Slots on the selected date that already carry an unapproved request.
+  // A pending request does not hold the slot, so it stays bookable, but the
+  // admin is told that somebody is already waiting for it.
+  const requestedSlots = useMemo(() => {
+    const slots = new Set();
+
+    for (const apt of appointments) {
+      if ((apt.status || "").toLowerCase() !== "pending") continue;
+      if (String(apt.doctor_id) !== String(selectedDoctorId)) continue;
+
+      const start = parseWallClock(apt.start_time || apt.date);
+      if (!start || toLocalDateString(start) !== selectedDate) continue;
+
+      slots.add(
+        `${String(start.getHours()).padStart(2, "0")}:${String(start.getMinutes()).padStart(2, "0")}`
+      );
+    }
+
+    return slots;
+  }, [appointments, selectedDoctorId, selectedDate]);
+
 
    
   // Generate calendar grid dates for current month view
@@ -781,23 +803,45 @@ const appointmentDatesSet = useMemo(() => {
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
                 {availableSlots.map((slot) => {
                   const isSelected = selectedSlot === slot;
+                  const isRequested = requestedSlots.has(slot);
                   return (
                     <button
                       type="button"
                       key={slot}
                       onClick={() => setSelectedSlot(slot)}
-                      className={`py-2 px-3 rounded-xl border text-xs font-medium transition flex items-center justify-center gap-1.5 ${
+                      title={
+                        isRequested
+                          ? "This slot already has a request waiting for approval"
+                          : undefined
+                      }
+                      className={`py-2 px-2 rounded-xl border text-xs font-medium transition flex flex-col items-center justify-center gap-0.5 ${
                         isSelected
                           ? "bg-[#8B1E42] text-white border-[#8B1E42] shadow-sm"
                           : "bg-[#F2EAE1] text-stone-800 border-[#DCD0C0] hover:bg-[#EAE0D5]"
                       }`}
                     >
-                      <Clock className="w-3 h-3" />
-                      {slot}
+                      <span className="flex items-center gap-1.5">
+                        <Clock className="w-3 h-3" />
+                        {slot}
+                      </span>
+                      {isRequested && (
+                        <span className="text-[9px] font-semibold uppercase tracking-wide opacity-80">
+                          Requested
+                        </span>
+                      )}
                     </button>
                   );
                 })}
               </div>
+            )}
+
+            {requestedSlots.size > 0 && (
+              <p className="text-xs text-stone-500 mt-2">
+                Slots marked{" "}
+                <span className="font-semibold text-stone-700">Requested</span> already
+                have a request waiting for approval. They are not blocked until an
+                admin approves one of them.
+              </p>
             )}
           </div>
 

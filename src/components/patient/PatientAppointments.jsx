@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Calendar,
   Clock,
@@ -13,8 +13,6 @@ import {
   ShieldAlert,
   ShieldX,
 } from "lucide-react";
-import MonthCalendar from "./MonthCalendar";
-import BookAppointment from "./BookAppointment";
 import {
   formatWallClockDate,
   formatWallClockTime,
@@ -162,7 +160,6 @@ function getPaymentStyle(paymentStatus) {
 export default function PatientAppointments() {
   const [appointments, setAppointments] = useState([]);
   const [doctorNames, setDoctorNames] = useState({});
-  const [selectedDate, setSelectedDate] = useState(new Date());
   const [activeFilter, setActiveFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -201,34 +198,41 @@ export default function PatientAppointments() {
     };
   }, []);
 
-  const selectedDateStr = toLocalDateString(selectedDate);
-  const todaysAppointments = appointments.filter(
-    (app) => !app.rawDate || app.rawDate === selectedDateStr
-  );
-
-  const scheduledDays = appointments
-    .filter((app) => {
-      if (!app.rawDate) return false;
-      const appDate = parseWallClock(app.rawDate);
-      return (
-        appDate &&
-        appDate.getMonth() === selectedDate.getMonth() &&
-        appDate.getFullYear() === selectedDate.getFullYear()
-      );
-    })
-    .map((app) => parseWallClock(app.rawDate).getDate());
-
+  const selectedDateStr = toLocalDateString(new Date());
   const pendingCount = appointments.filter(
     (app) => (app.status || "").toLowerCase() === "pending"
   ).length;
   const approvedCount = appointments.filter(
-    (app) => (app.status || "").toLowerCase() === "scheduled"
+    (app) => {
+      const s = (app.status || "").toLowerCase();
+      return s === "scheduled" || s === "in_consultation" || s === "completed";
+    }
   ).length;
 
-  const filteredAppointments = todaysAppointments.filter((app) => {
+  const sortedAppointments = useMemo(() => {
+    return [...appointments].sort((a, b) => {
+      const statusA = (a.status || "").toLowerCase();
+      const statusB = (b.status || "").toLowerCase();
+      const isApprovedA = statusA === "scheduled" || statusA === "in_consultation" || statusA === "completed";
+      const isApprovedB = statusB === "scheduled" || statusB === "in_consultation" || statusB === "completed";
+
+      // Approved appointments come first
+      if (isApprovedA !== isApprovedB) return isApprovedA ? -1 : 1;
+
+      const timeA = a.startTime ? new Date(a.startTime.replace(" ", "T")).getTime() : 0;
+      const timeB = b.startTime ? new Date(b.startTime.replace(" ", "T")).getTime() : 0;
+      if (timeA !== timeB) return timeA - timeB;
+      return a.id - b.id;
+    });
+  }, [appointments]);
+
+  const filteredAppointments = sortedAppointments.filter((app) => {
     const status = (app.status || "").toLowerCase();
     if (activeFilter === "pending") return status === "pending";
-    if (activeFilter === "approved") return status === "scheduled" || status === "in_consultation";
+    if (activeFilter === "approved")
+      return status === "scheduled" || status === "in_consultation" || status === "completed";
+    if (activeFilter === "declined")
+      return status === "declined" || status === "cancelled" || status === "canceled";
     return true;
   });
 
@@ -236,29 +240,22 @@ export default function PatientAppointments() {
     { id: "all", label: "All" },
     { id: "pending", label: "Pending" },
     { id: "approved", label: "Approved" },
+    { id: "declined", label: "Declined/Cancelled" },
   ];
 
   return (
     <div className="flex flex-col gap-6 sm:gap-8">
       {/* Request Appointment Section */}
-     
 
-      <div className="flex flex-col lg:flex-row gap-6 sm:gap-8 items-start">
-      {/* Appointments Section */}
-      <section className="w-full lg:flex-1 bg-[#F8F3EC] border border-[#DCCFBF] rounded-3xl overflow-hidden shadow-sm">
+      <section className="w-full bg-[#F8F3EC] border border-[#DCCFBF] rounded-3xl overflow-hidden shadow-sm">
         {/* Header Controls */}
         <div className="p-4 sm:p-6 lg:p-7 border-b border-[#DCCFBF] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="min-w-0">
             <h2 className="text-lg sm:text-xl font-bold text-[#3D2E28]">
-              My Appointments for{" "}
-              {selectedDate.toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-              })}
+              My Appointments
             </h2>
             <p className="text-sm text-[#8B7562] mt-0.5">
-              Review your pending and approved appointments.
+              View all of your appointments by category.
             </p>
           </div>
         </div>
@@ -400,21 +397,11 @@ export default function PatientAppointments() {
             </div>
           ) : (
             <div className="flex items-center justify-center p-8 sm:p-12 text-[#8B7562] text-center text-sm">
-              No appointments found for this date.
+              No appointments found.
             </div>
           )}
         </div>
-      </section>
-
-      {/* Calendar Box Section */}
-      <div className="w-full lg:w-auto flex justify-start order-first lg:order-last">
-        <MonthCalendar
-          scheduledDays={scheduledDays}
-          selected={selectedDate}
-          onSelectDate={setSelectedDate}
-        />
-      </div>
-      </div>
+</section>
     </div>
   );
 }

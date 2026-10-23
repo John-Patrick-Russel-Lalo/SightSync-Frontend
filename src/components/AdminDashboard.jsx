@@ -358,15 +358,9 @@ export default function AdminDashboard() {
                               </td>
 
                               <td className="px-4 sm:px-6 py-4">
-                                <select
-                                  value={u.role || "patient"}
-                                  onChange={(e) => initiateRoleChange(u, e.target.value)}
-                                  className="bg-[#F2EAE1] border border-[#DCD0C0] rounded-xl px-3 py-1.5 text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-[#8B1E42]/20 focus:border-[#8B1E42] capitalize font-medium cursor-pointer"
-                                >
-                                  <option value="patient">Patient</option>
-                                  <option value="doctor">Doctor</option>
-                                  <option value="admin">Admin</option>
-                                </select>
+                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium capitalize bg-[#E8DDD0] text-stone-800 border border-[#DCD0C0]">
+                                  {u.role || "patient"}
+                                </span>
                               </td>
 
                               <td className="px-4 sm:px-6 py-4">

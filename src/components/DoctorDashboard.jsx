@@ -1058,6 +1058,7 @@ import PortalLayout from "./PortalLayout";
 import SettingsPage from "./SettingsPage";
 import AppointmentArchive from "./AppointmentArchive";
 import PatientReportModal from "./PatientReportModal";
+import DoctorPatientRecords from "./doctor/DoctorPatientRecords";
 
 const API_URL = import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500";
 
@@ -1121,7 +1122,7 @@ export default function DoctorDashboard() {
   const { user, logout } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Navigation tab state: 'appointments' | 'settings'
+  // Navigation tab state: 'appointments' | 'patient-records' | 'archive' | 'settings'
   const [activeTab, setActiveTab] = useState("appointments");
 
   // State Management
@@ -1512,6 +1513,7 @@ export default function DoctorDashboard() {
 
   const navItems = [
     { id: "appointments", label: "Appointments", icon: LayoutDashboard },
+    { id: "patient-records", label: "Patient Records", icon: FileText },
     { id: "archive", label: "Appointment Archive", icon: Archive },
     { id: "settings", label: "Settings", icon: Settings, sectionEnd: true },
   ];
@@ -1527,12 +1529,14 @@ export default function DoctorDashboard() {
       user={user}
       onLogout={logout}
       maxWidth="max-w-[1500px]"
-    >
-      {activeTab === "settings" ? (
-        <SettingsPage />
-      ) : activeTab === "archive" ? (
-        <AppointmentArchive scope="all" />
-      ) : (
+      >
+        {activeTab === "settings" ? (
+          <SettingsPage />
+        ) : activeTab === "archive" ? (
+          <AppointmentArchive scope="all" />
+        ) : activeTab === "patient-records" ? (
+          <DoctorPatientRecords />
+        ) : (
         <div className="flex flex-col lg:flex-row gap-8 items-start">
           
           {/* Appointments Table Section */}

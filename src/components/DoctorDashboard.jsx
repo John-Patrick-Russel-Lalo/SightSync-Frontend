@@ -1528,7 +1528,7 @@ export default function DoctorDashboard() {
       onTabChange={setActiveTab}
       user={user}
       onLogout={logout}
-      maxWidth="max-w-[1500px]"
+      maxWidth="max-w-none"
       >
         {activeTab === "settings" ? (
           <SettingsPage />

@@ -216,6 +216,7 @@ export default function AdminDashboard() {
       onTabChange={setActiveTab}
       user={user}
       onLogout={logout}
+      maxWidth="max-w-none"
     >
       {activeTab === "settings" ? (
         <SettingsPage />
@@ -225,7 +226,7 @@ export default function AdminDashboard() {
           {activeTab === "analytics" && <Analytics onNavigate={setActiveTab} />}
 
           {activeTab === "users" && (
-            <div className="space-y-6 sm:space-y-8 max-w-6xl mx-auto">
+            <div className="space-y-6 sm:space-y-8 w-full">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <h2 className="text-xl sm:text-2xl font-bold text-stone-900">System Dashboard</h2>

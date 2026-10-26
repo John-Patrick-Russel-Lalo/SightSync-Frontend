@@ -279,7 +279,7 @@ export default function PatientManagementPage({ users: initialUsers, fetchWithCr
   };
 
   return (
-    <div className="space-y-6 sm:space-y-8 max-w-6xl mx-auto">
+    <div className="space-y-6 sm:space-y-8 w-full">
       <div>
         <h2 className="text-xl sm:text-2xl font-bold text-stone-900">Patient Management</h2>
         <p className="text-sm text-stone-600">View and edit profiles or update status for registered patients.</p>

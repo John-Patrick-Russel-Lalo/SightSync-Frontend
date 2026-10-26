@@ -1032,7 +1032,7 @@ export default function DoctorManagementPage() {
   }, [doctors, searchTerm]);
 
   return (
-    <div className="space-y-6 sm:space-y-8 max-w-6xl mx-auto">
+    <div className="space-y-6 sm:space-y-8 w-full">
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

@@ -133,7 +133,7 @@ export default function PatientReportModal({ patientId, patientName = "Patient",
         const data = await res.json().catch(() => ({}));
 
         if (active && res.ok && data.summary) {
-          setSummaryText(data.summary);
+          setSummaryText(String(data.summary ?? "").trim());
           setSummaryGeneratedAt(data.generatedAt);
           setSummaryLockedUntil(data.nextAvailableAt);
           setSummaryLocked(isLockActive(data.nextAvailableAt));
@@ -172,11 +172,13 @@ export default function PatientReportModal({ patientId, patientName = "Patient",
       if (!res.ok) {
         throw new Error(data.error || data.message || "Could not generate the overview summary.");
       }
-      if (!data.summary) {
+      const trimmedSummary = String(data.summary ?? "").trim();
+
+      if (!trimmedSummary) {
         throw new Error("The AI service returned an empty summary.");
       }
 
-      setSummaryText(data.summary);
+      setSummaryText(trimmedSummary);
       setSummaryGeneratedAt(data.generatedAt);
       setSummaryLockedUntil(data.nextAvailableAt);
       setSummaryLocked(isLockActive(data.nextAvailableAt));

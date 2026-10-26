@@ -34,6 +34,7 @@ export default function PatientDashboard() {
       onTabChange={setActiveTab}
       user={user}
       onLogout={logout}
+      maxWidth="max-w-none"
     >
       {activeTab === "overview" && <PatientAppointments />}
       {activeTab === "availability" && (

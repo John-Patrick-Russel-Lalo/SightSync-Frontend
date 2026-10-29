@@ -482,7 +482,7 @@
 // }
 
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Eye,
@@ -596,19 +596,79 @@ const TESTIMONIALS = [
   },
 ];
 
+const REVEAL_OFFSETS = {
+  up: "translate-y-10",
+  down: "-translate-y-10",
+  left: "-translate-x-10",
+  right: "translate-x-10",
+  scale: "scale-95",
+  fade: "",
+};
+
+function Reveal({
+  children,
+  className = "",
+  delay = 0,
+  variant = "up",
+  as: Tag = "div",
+  ...rest
+}) {
+  const ref = useRef(null);
+  const [visible, setVisible] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  );
+
+  useEffect(() => {
+    const node = ref.current;
+    if (!node || visible) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          observer.unobserve(entry.target);
+        }
+      },
+      { threshold: 0.15, rootMargin: "0px 0px -60px 0px" },
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [visible]);
+
+  const hidden = REVEAL_OFFSETS[variant] ?? REVEAL_OFFSETS.up;
+
+  return (
+    <Tag
+      ref={ref}
+      style={{ transitionDelay: `${delay}ms` }}
+      className={`transition-all duration-700 ease-out will-change-transform ${
+        visible
+          ? "opacity-100 translate-x-0 translate-y-0 scale-100"
+          : `opacity-0 ${hidden}`
+      } ${className}`}
+      {...rest}
+    >
+      {children}
+    </Tag>
+  );
+}
+
 export default function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[#F4EFEA] text-[#2C221E] font-sans">
+    <div className="min-h-screen bg-[#EDE3D8] text-[#3D2E28] font-sans overflow-x-hidden">
       {/* ------------------------------ HEADER / NAV ------------------------------ */}
-      <header className="sticky top-0 z-30 bg-[#F4EFEA]/90 backdrop-blur border-b border-[#E8DFC0]/40">
+      <header className="sticky top-0 z-30 bg-[#EDE3D8]/90 backdrop-blur border-b border-[#DCD0C0]/40">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-full bg-[#6B1D38] flex items-center justify-center text-white">
+            <div className="w-9 h-9 rounded-full bg-[#8B1E42] flex items-center justify-center text-white">
               <Eye className="w-5 h-5" />
             </div>
-            <span className="font-bold text-2xl text-[#2C221E] tracking-tight">
+            <span className="font-bold text-2xl text-[#3D2E28] tracking-tight">
               SightSync
             </span>
           </Link>
@@ -618,7 +678,7 @@ export default function LandingPage() {
               <a
                 key={link.href}
                 href={link.href}
-                className="text-base font-semibold text-[#5E524D] hover:text-[#6B1D38] transition"
+                className="text-base font-semibold text-[#5B4B41] hover:text-[#8B1E42] transition"
               >
                 {link.label}
               </a>
@@ -628,13 +688,13 @@ export default function LandingPage() {
           <div className="hidden lg:flex items-center gap-5">
             <Link
               to="/login"
-              className="text-base font-semibold text-[#2C221E] hover:opacity-80 transition px-2"
+              className="text-base font-semibold text-[#3D2E28] hover:opacity-80 transition px-2"
             >
               Sign in
             </Link>
             <Link
               to="/login"
-              className="px-6 py-3 rounded-full text-sm font-bold bg-[#6B1D38] text-white hover:bg-[#54162B] transition shadow-sm"
+              className="px-6 py-3 rounded-full text-sm font-bold bg-[#8B1E42] text-white hover:bg-[#731836] transition shadow-sm"
             >
               Book a check-up
             </Link>
@@ -642,7 +702,7 @@ export default function LandingPage() {
 
           <button
             onClick={() => setMenuOpen((v) => !v)}
-            className="lg:hidden p-2 text-[#2C221E] hover:bg-black/5 rounded-xl transition"
+            className="lg:hidden p-2 text-[#3D2E28] hover:bg-black/5 rounded-xl transition"
             aria-label="Toggle navigation"
           >
             {menuOpen ? <X className="w-7 h-7" /> : <Menu className="w-7 h-7" />}
@@ -650,13 +710,13 @@ export default function LandingPage() {
         </div>
 
         {menuOpen && (
-          <div className="lg:hidden px-6 pb-6 space-y-4 bg-[#F4EFEA]">
+          <div className="lg:hidden px-6 pb-6 space-y-4 bg-[#EDE3D8]">
             {NAV_LINKS.map((link) => (
               <a
                 key={link.href}
                 href={link.href}
                 onClick={() => setMenuOpen(false)}
-                className="block text-base font-semibold text-[#2C221E] hover:text-[#6B1D38] transition"
+                className="block text-base font-semibold text-[#3D2E28] hover:text-[#8B1E42] transition"
               >
                 {link.label}
               </a>
@@ -664,13 +724,13 @@ export default function LandingPage() {
             <div className="pt-2 flex flex-col gap-3">
               <Link
                 to="/login"
-                className="block text-center px-4 py-2 text-base font-semibold text-[#2C221E]"
+                className="block text-center px-4 py-2 text-base font-semibold text-[#3D2E28]"
               >
                 Sign in
               </Link>
               <Link
                 to="/login"
-                className="block text-center px-6 py-3 rounded-full text-sm font-bold bg-[#6B1D38] text-white"
+                className="block text-center px-6 py-3 rounded-full text-sm font-bold bg-[#8B1E42] text-white"
               >
                 Book a check-up
               </Link>
@@ -682,17 +742,17 @@ export default function LandingPage() {
       {/* ------------------------------ HERO ------------------------------ */}
       <section id="home" className="relative pt-8 pb-16 lg:pb-24">
         <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-12 items-center">
-          <div>
-            <span className="inline-flex items-center bg-[#EAD8D8] text-[#6B1D38] px-4 py-2 rounded-full text-sm font-bold tracking-wide">
+          <Reveal variant="up">
+            <span className="inline-flex items-center bg-[#8B1E42]/10 text-[#8B1E42] px-4 py-2 rounded-full text-sm font-bold tracking-wide">
               Optical clinic · Eye care · Eyewear shop
             </span>
 
-            <h1 className="mt-8 text-5xl sm:text-6xl lg:text-7xl font-extrabold text-[#1F1714] tracking-tight leading-[1.08]">
+            <h1 className="mt-8 text-5xl sm:text-6xl lg:text-7xl font-extrabold text-[#3D2E28] tracking-tight leading-[1.08]">
               See the world in <br />
-              <span className="text-[#6B1D38]">perfect focus.</span>
+              <span className="text-[#8B1E42]">perfect focus.</span>
             </h1>
 
-            <p className="mt-6 text-lg sm:text-xl text-[#6A5D57] leading-relaxed max-w-xl">
+            <p className="mt-6 text-lg sm:text-xl text-[#8B7562] leading-relaxed max-w-xl">
               From thorough eye check-ups and prescription lenses to designer
               frames and comfortable contact lenses — SightSync has everything you
               need for a clearer, brighter vision.
@@ -701,98 +761,99 @@ export default function LandingPage() {
             <div className="mt-8 flex flex-wrap items-center gap-4">
               <a
                 href="#services"
-                className="inline-flex items-center gap-2.5 bg-[#6B1D38] text-white px-7 py-4 rounded-2xl text-base font-bold hover:bg-[#54162B] transition shadow-md shadow-[#6B1D38]/15"
+                className="inline-flex items-center gap-2.5 bg-[#8B1E42] text-white px-7 py-4 rounded-2xl text-base font-bold hover:bg-[#731836] transition shadow-md shadow-[#8B1E42]/15"
               >
                 <Calendar className="w-5 h-5" />
                 Book an eye check-up
               </a>
               <a
                 href="#frames"
-                className="inline-flex items-center gap-2.5 bg-[#FAF7F3] border border-[#E2D8CF] text-[#2C221E] px-7 py-4 rounded-2xl text-base font-bold hover:bg-white transition"
+                className="inline-flex items-center gap-2.5 bg-[#F8F3EC] border border-[#E2D6C7] text-[#3D2E28] px-7 py-4 rounded-2xl text-base font-bold hover:bg-white transition"
               >
-                <Glasses className="w-5 h-5 text-[#6B1D38]" /> Browse frames
+                <Glasses className="w-5 h-5 text-[#8B1E42]" /> Browse frames
               </a>
             </div>
 
-            <div className="mt-10 flex items-center gap-6 text-sm sm:text-base text-[#6A5D57]">
+            <div className="mt-10 flex items-center gap-6 text-sm sm:text-base text-[#8B7562]">
               <div className="flex items-center gap-2">
                 <div className="flex text-amber-500 gap-0.5">
                   {[...Array(5)].map((_, i) => (
                     <Star key={i} className="w-5 h-5 fill-current" />
                   ))}
                 </div>
-                <span className="font-extrabold text-[#1F1714] ml-1 text-lg">4.9/5</span>
+                <span className="font-extrabold text-[#3D2E28] ml-1 text-lg">4.9/5</span>
               </div>
-              <div className="h-5 w-px bg-[#D9CDC2]" />
+              <div className="h-5 w-px bg-[#DCD0C0]" />
               <div className="flex items-center gap-2">
-                <Users className="w-5 h-5 text-[#6B1D38]" />
-                <span>Trusted by <strong className="text-[#1F1714] font-extrabold text-base">15,000+</strong> patients</span>
+                <Users className="w-5 h-5 text-[#8B1E42]" />
+                <span>Trusted by <strong className="text-[#3D2E28] font-extrabold text-base">15,000+</strong> patients</span>
               </div>
             </div>
-          </div>
+          </Reveal>
 
           {/* 3D Scene Wrapper */}
-          <div className="relative h-[420px] sm:h-[500px] lg:h-[560px]">
-            <div className="absolute inset-0 rounded-[2.5rem] bg-[#1E1617] overflow-hidden shadow-2xl flex flex-col justify-between p-6">
+          <Reveal variant="fade" delay={150} className="relative h-[420px] sm:h-[500px] lg:h-[560px]">
+            <div className="absolute inset-0 rounded-[2.5rem] bg-[#2B241F] overflow-hidden shadow-2xl flex flex-col justify-between p-6">
               <div className="w-full h-full relative">
                 <GlassesScene />
               </div>
 
-              <div className="bg-[#2A2021]/90 backdrop-blur border border-white/10 rounded-2xl px-5 py-3.5 flex items-center justify-between text-sm text-[#D9CDC2]">
+              <div className="bg-[#3D2E28]/90 backdrop-blur border border-white/10 rounded-2xl px-5 py-3.5 flex items-center justify-between text-sm text-[#DCD0C0]">
                 <span className="flex items-center gap-2 font-semibold">
-                  <Glasses className="w-5 h-5 text-[#C4A47C]" /> Premium eyewear
+                  <Glasses className="w-5 h-5 text-[#C08A3E]" /> Premium eyewear
                 </span>
                 <span className="flex items-center gap-2 font-semibold">
-                  <Eye className="w-5 h-5 text-[#C4A47C]" /> EMA-certified lenses
+                  <Eye className="w-5 h-5 text-[#C08A3E]" /> EMA-certified lenses
                 </span>
               </div>
             </div>
-          </div>
+          </Reveal>
         </div>
       </section>
 
       {/* ------------------------------ OUR SERVICES ------------------------------ */}
-      <section id="services" className="py-20 bg-[#F4EFEA]">
+      <section id="services" className="py-20 bg-[#EDE3D8]">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <Reveal variant="up" className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div>
-              <span className="text-sm font-extrabold uppercase tracking-widest text-[#7C6E67]">
+              <span className="text-sm font-extrabold uppercase tracking-widest text-[#8B7562]">
                 OUR SERVICES
               </span>
-              <h2 className="mt-2 text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#1F1714] leading-tight max-w-md">
+              <h2 className="mt-2 text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#3D2E28] leading-tight max-w-md">
                 Complete Eye Care Under One Roof
               </h2>
             </div>
-            <p className="text-base sm:text-lg text-[#6A5D57] max-w-md leading-relaxed">
+            <p className="text-base sm:text-lg text-[#8B7562] max-w-md leading-relaxed">
               From routine check-ups to stylish eyewear, we provide comprehensive eye care services to keep your vision clear and your eyes healthy.
             </p>
-          </div>
+          </Reveal>
 
           <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {SERVICES.map((service) => {
+            {SERVICES.map((service, idx) => {
               const Icon = service.icon;
               return (
-                <div
+                <Reveal
                   key={service.title}
-                  className="bg-[#FAF7F3] rounded-3xl p-7 border border-[#E8DFC0]/40 shadow-sm hover:shadow-md transition flex flex-col justify-between"
+                  delay={idx * 120}
+                  className="bg-[#F8F3EC] rounded-3xl p-7 border border-[#DCD0C0]/40 shadow-sm hover:shadow-md transition flex flex-col justify-between"
                 >
                   <div>
-                    <div className="w-12 h-12 rounded-full bg-[#F2E5E5] flex items-center justify-center text-[#6B1D38]">
+                    <div className="w-12 h-12 rounded-full bg-[#8B1E42]/10 flex items-center justify-center text-[#8B1E42]">
                       <Icon className="w-6 h-6" />
                     </div>
-                    <h3 className="mt-6 text-lg font-extrabold text-[#1F1714] leading-snug">
+                    <h3 className="mt-6 text-lg font-extrabold text-[#3D2E28] leading-snug">
                       {service.title}
                     </h3>
-                    <p className="mt-3 text-sm text-[#6A5D57] leading-relaxed">
+                    <p className="mt-3 text-sm text-[#8B7562] leading-relaxed">
                       {service.desc}
                     </p>
                   </div>
                   <div className="mt-6">
-                    <span className="inline-block text-xs font-bold text-[#6B1D38] bg-[#F2E5E5] px-4 py-1.5 rounded-full">
+                    <span className="inline-block text-xs font-bold text-[#8B1E42] bg-[#8B1E42]/10 px-4 py-1.5 rounded-full">
                       {service.tag}
                     </span>
                   </div>
-                </div>
+                </Reveal>
               );
             })}
           </div>
@@ -800,9 +861,9 @@ export default function LandingPage() {
       </section>
 
       {/* ------------------------------ OUR APPROACH ------------------------------ */}
-      <section className="py-20 bg-[#EDE5DC]">
+      <section className="py-20 bg-[#E8DDD0]">
         <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-12 gap-10 items-center">
-          <div className="lg:col-span-5 relative">
+          <Reveal variant="left" className="lg:col-span-5 relative">
             <div className="rounded-3xl overflow-hidden shadow-lg bg-stone-300 aspect-[4/3] lg:aspect-auto">
               <img
                 src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&q=80&w=800"
@@ -810,100 +871,101 @@ export default function LandingPage() {
                 className="w-full h-full object-cover"
               />
             </div>
-          </div>
+          </Reveal>
 
-          <div className="lg:col-span-7 lg:pl-6">
-            <span className="text-sm font-extrabold uppercase tracking-widest text-[#7C6E67]">
+          <Reveal variant="right" delay={100} className="lg:col-span-7 lg:pl-6">
+            <span className="text-sm font-extrabold uppercase tracking-widest text-[#8B7562]">
               OUR APPROACH
             </span>
-            <h2 className="mt-2 text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#1F1714] leading-tight">
+            <h2 className="mt-2 text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#3D2E28] leading-tight">
               Care that goes beyond <br />
               the prescription.
             </h2>
-            <p className="mt-4 text-base sm:text-lg text-[#6A5D57] leading-relaxed max-w-xl">
+            <p className="mt-4 text-base sm:text-lg text-[#8B7562] leading-relaxed max-w-xl">
               We take time to understand your vision needs first, then guide you to the right solution — from eye examination to the eyewear you use every day.
             </p>
 
             <a
               href="#why"
-              className="mt-6 inline-block bg-[#6B1D38] text-white text-sm font-bold px-7 py-3 rounded-full hover:bg-[#54162B] transition"
+              className="mt-6 inline-block bg-[#8B1E42] text-white text-sm font-bold px-7 py-3 rounded-full hover:bg-[#731836] transition"
             >
               Learn More →
             </a>
 
-            <div className="mt-10 space-y-6 border-t border-[#D9CDC2] pt-8">
+            <div className="mt-10 space-y-6 border-t border-[#DCD0C0] pt-8">
               {APPROACH_STEPS.map((step, idx) => (
-                <div key={idx} className="flex items-start gap-4">
-                  <div className="w-9 h-9 rounded-full bg-[#F2E5E5] text-[#6B1D38] flex items-center justify-center shrink-0 font-bold text-sm">
+                <Reveal key={idx} delay={200 + idx * 120} className="flex items-start gap-4">
+                  <div className="w-9 h-9 rounded-full bg-[#8B1E42]/10 text-[#8B1E42] flex items-center justify-center shrink-0 font-bold text-sm">
                     0{idx + 1}
                   </div>
                   <div>
-                    <h4 className="text-base font-extrabold text-[#1F1714]">{step.title}</h4>
-                    <p className="text-sm text-[#6A5D57] mt-1 leading-relaxed">{step.desc}</p>
+                    <h4 className="text-base font-extrabold text-[#3D2E28]">{step.title}</h4>
+                    <p className="text-sm text-[#8B7562] mt-1 leading-relaxed">{step.desc}</p>
                   </div>
-                </div>
+                </Reveal>
               ))}
             </div>
-          </div>
+          </Reveal>
         </div>
       </section>
 
       {/* ------------------------------ WHY SIGHTSYNC ------------------------------ */}
-      <section id="why" className="py-20 bg-[#F4EFEA]">
+      <section id="why" className="py-20 bg-[#EDE3D8]">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center max-w-xl mx-auto">
-            <span className="text-sm font-extrabold uppercase tracking-widest text-[#7C6E67]">
+          <Reveal variant="up" className="text-center max-w-xl mx-auto">
+            <span className="text-sm font-extrabold uppercase tracking-widest text-[#8B7562]">
               WHY SIGHTSYNC
             </span>
-            <h2 className="mt-2 text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#1F1714]">
+            <h2 className="mt-2 text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#3D2E28]">
               More Than Just Eyewear. <br />
               It's a Better You.
             </h2>
-          </div>
+          </Reveal>
 
           <div className="mt-14 grid sm:grid-cols-2 lg:grid-cols-4 gap-8 text-center">
             {WHY_US_FEATURES.map((feat, idx) => (
-              <div key={idx} className="flex flex-col items-center">
-                <div className="w-14 h-14 rounded-full bg-[#F2E5E5] flex items-center justify-center text-[#6B1D38] mb-5">
+              <Reveal key={idx} delay={idx * 120} className="flex flex-col items-center">
+                <div className="w-14 h-14 rounded-full bg-[#8B1E42]/10 flex items-center justify-center text-[#8B1E42] mb-5">
                   <Eye className="w-6 h-6" />
                 </div>
-                <h3 className="text-lg font-extrabold text-[#1F1714]">{feat.title}</h3>
-                <p className="mt-2 text-sm text-[#6A5D57] max-w-xs leading-relaxed">
+                <h3 className="text-lg font-extrabold text-[#3D2E28]">{feat.title}</h3>
+                <p className="mt-2 text-sm text-[#8B7562] max-w-xs leading-relaxed">
                   {feat.desc}
                 </p>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
       </section>
 
       {/* ------------------------------ TESTIMONIALS ------------------------------ */}
-      <section className="py-20 bg-[#FAF7F3] border-t border-[#E8DFC0]/40">
+      <section className="py-20 bg-[#F8F3EC] border-t border-[#DCD0C0]/40">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="flex items-center justify-between mb-12">
+          <Reveal variant="up" className="flex items-center justify-between mb-12">
             <div>
-              <span className="text-sm font-extrabold uppercase tracking-widest text-[#7C6E67]">
+              <span className="text-sm font-extrabold uppercase tracking-widest text-[#8B7562]">
                 REAL STORIES. CLEARER VISION.
               </span>
-              <h2 className="mt-2 text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#1F1714]">
+              <h2 className="mt-2 text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#3D2E28]">
                 What Our Patients Say
               </h2>
             </div>
             <div className="flex items-center gap-3">
-              <button className="w-10 h-10 rounded-full border border-[#D9CDC2] flex items-center justify-center text-[#5E524D] hover:bg-white transition">
+              <button className="w-10 h-10 rounded-full border border-[#DCD0C0] flex items-center justify-center text-[#5B4B41] hover:bg-white transition">
                 <ChevronLeft className="w-5 h-5" />
               </button>
-              <button className="w-10 h-10 rounded-full border border-[#D9CDC2] flex items-center justify-center text-[#5E524D] hover:bg-white transition">
+              <button className="w-10 h-10 rounded-full border border-[#DCD0C0] flex items-center justify-center text-[#5B4B41] hover:bg-white transition">
                 <ChevronRight className="w-5 h-5" />
               </button>
             </div>
-          </div>
+          </Reveal>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {TESTIMONIALS.map((t, i) => (
-              <div
+              <Reveal
                 key={i}
-                className="bg-white rounded-3xl p-8 border border-[#E8DFC0]/40 shadow-sm flex flex-col justify-between"
+                delay={i * 120}
+                className="bg-white rounded-3xl p-8 border border-[#DCD0C0]/40 shadow-sm flex flex-col justify-between"
               >
                 <div className="flex items-start gap-4">
                   <img
@@ -912,10 +974,10 @@ export default function LandingPage() {
                     className="w-12 h-12 rounded-full object-cover shrink-0"
                   />
                   <div>
-                    <p className="text-sm text-[#6A5D57] leading-relaxed italic">
+                    <p className="text-sm text-[#8B7562] leading-relaxed italic">
                       "{t.text}"
                     </p>
-                    <h4 className="mt-3 text-sm font-extrabold text-[#1F1714]">{t.name}</h4>
+                    <h4 className="mt-3 text-sm font-extrabold text-[#3D2E28]">{t.name}</h4>
                     <div className="flex text-amber-500 mt-1 gap-0.5">
                       {[...Array(t.stars)].map((_, s) => (
                         <Star key={s} className="w-4 h-4 fill-current" />
@@ -923,15 +985,15 @@ export default function LandingPage() {
                     </div>
                   </div>
                 </div>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
       </section>
 
       {/* ------------------------------ BOTTOM CTA BANNER ------------------------------ */}
-      <section className="bg-[#6B1D38] text-white py-14 px-6">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
+      <section className="bg-[#8B1E42] text-white py-14 px-6">
+        <Reveal variant="up" className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
           <div>
             <span className="text-xs font-bold uppercase tracking-widest text-white/80">
               READY TO SEE THINGS DIFFERENTLY?
@@ -942,34 +1004,34 @@ export default function LandingPage() {
           </div>
           <Link
             to="/login"
-            className="px-7 py-3.5 rounded-full text-sm font-bold bg-white text-[#6B1D38] hover:bg-[#F4EFEA] transition shrink-0 inline-flex items-center gap-2"
+            className="px-7 py-3.5 rounded-full text-sm font-bold bg-white text-[#8B1E42] hover:bg-[#EDE3D8] transition shrink-0 inline-flex items-center gap-2"
           >
             Book a Check-up <ArrowRight className="w-4 h-4" />
           </Link>
-        </div>
+        </Reveal>
       </section>
 
       {/* ------------------------------ FOOTER ------------------------------ */}
-      <footer id="contact" className="bg-[#181110] text-[#A89890] text-sm">
-        <div className="max-w-7xl mx-auto px-6 py-14 grid sm:grid-cols-2 lg:grid-cols-4 gap-10 border-b border-white/10">
+      <footer id="contact" className="bg-[#2B241F] text-[#B9AAA4] text-sm">
+        <Reveal variant="up" className="max-w-7xl mx-auto px-6 py-14 grid sm:grid-cols-2 lg:grid-cols-4 gap-10 border-b border-white/10">
           <div className="space-y-4">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full bg-[#6B1D38] flex items-center justify-center text-white shadow-md">
+              <div className="w-8 h-8 rounded-full bg-[#8B1E42] flex items-center justify-center text-white shadow-md">
                 <Eye className="w-4 h-4" />
               </div>
               <span className="font-bold text-xl text-white tracking-tight">SightSync</span>
             </div>
-            <p className="text-sm text-[#A89890]/80 leading-relaxed">
+            <p className="text-sm text-[#B9AAA4]/80 leading-relaxed">
               Modern optical care dedicated to precision vision tests, designer frames, and high-quality prescription lenses.
             </p>
             <div className="pt-1 flex items-center gap-3 text-white/70">
-              <span className="text-xs font-bold tracking-wider text-[#C4A47C]">OPTICAL CLINIC & EYEWEAR</span>
+              <span className="text-xs font-bold tracking-wider text-[#C08A3E]">OPTICAL CLINIC & EYEWEAR</span>
             </div>
           </div>
 
           <div>
-            <h4 className="text-xs font-extrabold uppercase tracking-wider text-[#C4A47C] mb-4">Our Specialty</h4>
-            <ul className="space-y-2.5 text-sm text-[#D9CDC2]">
+            <h4 className="text-xs font-extrabold uppercase tracking-wider text-[#C08A3E] mb-4">Our Specialty</h4>
+            <ul className="space-y-2.5 text-sm text-[#DCD0C0]">
               <li className="hover:text-white transition">Comprehensive Eye Exam</li>
               <li className="hover:text-white transition">Prescription & Blue-Light Lenses</li>
               <li className="hover:text-white transition">Designer & Custom Frames</li>
@@ -978,8 +1040,8 @@ export default function LandingPage() {
           </div>
 
           <div>
-            <h4 className="text-xs font-extrabold uppercase tracking-wider text-[#C4A47C] mb-4">Clinic Hours</h4>
-            <ul className="space-y-2.5 text-sm text-[#D9CDC2]">
+            <h4 className="text-xs font-extrabold uppercase tracking-wider text-[#C08A3E] mb-4">Clinic Hours</h4>
+            <ul className="space-y-2.5 text-sm text-[#DCD0C0]">
               <li className="flex justify-between border-b border-white/5 pb-1.5">
                 <span>Monday – Friday</span>
                 <span className="text-white/90 font-semibold">8:00 AM – 7:00 PM</span>
@@ -990,31 +1052,31 @@ export default function LandingPage() {
               </li>
               <li className="flex justify-between">
                 <span>Sunday</span>
-                <span className="text-[#6B1D38] font-bold bg-[#6B1D38]/20 px-2.5 py-0.5 rounded text-xs">Closed</span>
+                <span className="text-[#C08A3E] font-bold bg-[#C08A3E]/15 px-2.5 py-0.5 rounded text-xs">Closed</span>
               </li>
             </ul>
           </div>
 
           <div>
-            <h4 className="text-xs font-extrabold uppercase tracking-wider text-[#C4A47C] mb-4">Get In Touch</h4>
-            <ul className="space-y-3 text-sm text-[#D9CDC2]">
+            <h4 className="text-xs font-extrabold uppercase tracking-wider text-[#C08A3E] mb-4">Get In Touch</h4>
+            <ul className="space-y-3 text-sm text-[#DCD0C0]">
               <li className="flex items-start gap-2.5">
-                <Phone className="w-4 h-4 text-[#6B1D38] shrink-0 mt-1" />
+                <Phone className="w-4 h-4 text-[#C08A3E] shrink-0 mt-1" />
                 <span>+63 912 345 6789 / (02) 8555-0199</span>
               </li>
               <li className="flex items-start gap-2.5">
-                <MapPin className="w-4 h-4 text-[#6B1D38] shrink-0 mt-1" />
+                <MapPin className="w-4 h-4 text-[#C08A3E] shrink-0 mt-1" />
                 <span>123 Vision Street, Rizal City, Metro Manila</span>
               </li>
               <li className="flex items-start gap-2.5">
-                <Mail className="w-4 h-4 text-[#6B1D38] shrink-0 mt-1" />
+                <Mail className="w-4 h-4 text-[#C08A3E] shrink-0 mt-1" />
                 <span>hello@sightsync.com</span>
               </li>
             </ul>
           </div>
-        </div>
+        </Reveal>
 
-        <div className="max-w-7xl mx-auto px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#A89890]/70">
+        <div className="max-w-7xl mx-auto px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#B9AAA4]/70">
           <span>© {new Date().getFullYear()} SightSync Optical Clinic. All rights reserved.</span>
           <div className="flex gap-6">
             <a href="#" className="hover:text-white transition">Privacy Policy</a>

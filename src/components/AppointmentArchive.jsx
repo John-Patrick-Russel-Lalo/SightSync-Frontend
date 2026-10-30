@@ -11,6 +11,8 @@ import {
   FileText,
 } from "lucide-react";
 import { formatWallClockDateTime } from "../utils/dateTime";
+import Pagination from "./Pagination";
+import { usePagination } from "../utils/usePagination";
 
 const API_URL = import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500";
 
@@ -144,6 +146,8 @@ export default function AppointmentArchive({ scope = "my", users = null }) {
     });
   }, [archives, searchTerm, statusFilter, doctorNames, nameMaps]);
 
+  const archivePagination = usePagination(filteredArchives, 10);
+
   const isAllScope = scope === "all";
 
   return (
@@ -183,7 +187,10 @@ export default function AppointmentArchive({ scope = "my", users = null }) {
               type="text"
               placeholder="Search by record, patient, doctor, reason..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                archivePagination.reset();
+              }}
               className="w-full pl-10 pr-4 py-2 bg-[#F2EAE1] border border-[#DCD0C0] rounded-xl text-sm text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#8B1E42]/20 focus:border-[#8B1E42]"
             />
           </div>
@@ -191,7 +198,10 @@ export default function AppointmentArchive({ scope = "my", users = null }) {
           <div className="relative w-full sm:w-auto">
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                archivePagination.reset();
+              }}
               className="w-full bg-[#F2EAE1] border border-[#DCD0C0] rounded-xl px-3 py-2 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[#8B1E42]/20 focus:border-[#8B1E42] cursor-pointer font-medium"
             >
               <option value="all">All Statuses</option>
@@ -245,7 +255,7 @@ export default function AppointmentArchive({ scope = "my", users = null }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#EBE3D8]">
-              {filteredArchives.map((a) => {
+              {archivePagination.pageItems.map((a) => {
                 const doctorName = doctorNames[a.doctor_id] || nameMaps.doctors[a.doctor_id] || `Doctor #${a.doctor_id}`;
                 const patientName = nameMaps.patients[a.patient_id] || `Patient #${a.patient_id}`;
                 return (
@@ -326,6 +336,15 @@ export default function AppointmentArchive({ scope = "my", users = null }) {
           </table>
         )}
       </div>
+      <Pagination
+        page={archivePagination.page}
+        pageCount={archivePagination.pageCount}
+        total={archivePagination.total}
+        startIndex={archivePagination.startIndex}
+        endIndex={archivePagination.endIndex}
+        onPageChange={archivePagination.setPage}
+        itemLabel="records"
+      />
     </section>
   );
 }

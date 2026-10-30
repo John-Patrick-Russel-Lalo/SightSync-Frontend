@@ -128,7 +128,7 @@ export default function Overview({ onNavigate }) {
       {
         key: "inventory",
         run: async () =>
-          setInventory(toList(await fetchJson(`${API_URL}/inventory?limit=200`))),
+          setInventory(toList(await fetchJson(`${API_URL}/inventory?limit=500`))),
       },
       {
         key: "pos",

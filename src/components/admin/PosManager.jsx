@@ -24,6 +24,8 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { parseWallClock, toLocalDateString } from "../../utils/dateTime";
+import Pagination from "../Pagination";
+import { usePagination } from "../../utils/usePagination";
 
 const API_POS_URL = `${import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500"}/pos`;
 const API_INVENTORY_URL = `${import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500"}/inventory`;
@@ -50,6 +52,8 @@ const CATEGORY_FILTERS = [
   { id: "accessory", label: "Accessories" },
 ];
 
+const PRODUCT_PAGE_SIZE = 12;
+
 const round2 = (n) => Math.round(n * 100) / 100;
 
 const toLocalISO = toLocalDateString;
@@ -70,6 +74,10 @@ export default function PosManager() {
   const [cart, setCart] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [brandFilter, setBrandFilter] = useState("all");
+  const [brandOptions, setBrandOptions] = useState([]);
+  const [productPage, setProductPage] = useState(1);
+  const [productTotal, setProductTotal] = useState(0);
   const [customerName, setCustomerName] = useState("");
   // Registered patient picked from the dropdown; null keeps the old
   // manual/walk-in behaviour.
@@ -118,19 +126,46 @@ export default function PosManager() {
     setInventoryLoading(true);
     setInventoryError(null);
     try {
+      const params = new URLSearchParams({
+        limit: String(PRODUCT_PAGE_SIZE),
+        offset: String((productPage - 1) * PRODUCT_PAGE_SIZE),
+      });
+      const search = searchTerm.trim();
+      if (search) params.set("search", search);
+      if (categoryFilter !== "all") params.set("category", categoryFilter);
+      if (brandFilter !== "all") params.set("brand", brandFilter);
+
       const response = await fetchWithCredentials(
-        `${API_INVENTORY_URL}?limit=200`
+        `${API_INVENTORY_URL}?${params.toString()}`
       );
       if (response.status === 401 || response.status === 403) {
         throw new Error("Unauthorized: You must be logged in as an administrator.");
       }
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || result.message || "Failed to fetch inventory");
-      setInventory(result.data || []);
+
+      const rows = result.data || [];
+      setInventory(rows);
+      setProductTotal(Number(result.total ?? result.count ?? rows.length));
+
+      if (rows.length === 0 && productPage > 1) {
+        setProductPage((current) => Math.max(1, current - 1));
+      }
     } catch (err) {
       setInventoryError(err.message);
     } finally {
       setInventoryLoading(false);
+    }
+  };
+
+  const fetchBrands = async () => {
+    try {
+      const response = await fetchWithCredentials(`${API_INVENTORY_URL}/brands`);
+      if (!response.ok) return;
+      const result = await response.json();
+      if (Array.isArray(result.data)) setBrandOptions(result.data);
+    } catch {
+      // Brand filter falls back to the options already loaded.
     }
   };
 
@@ -188,14 +223,20 @@ export default function PosManager() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      fetchInventory();
       fetchSales();
       fetchSummary();
       fetchPatients();
+      fetchBrands();
     }, 0);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => fetchInventory(), 250);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productPage, searchTerm, categoryFilter, brandFilter]);
 
   useEffect(() => {
     if (activeTab !== "sales") return;
@@ -215,20 +256,9 @@ export default function PosManager() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startDate, endDate]);
 
-  const filteredInventory = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase();
-    return inventory.filter((item) => {
-      const matchesCategory =
-        categoryFilter === "all" || item.category === categoryFilter;
-      if (!matchesCategory) return false;
-      if (!term) return true;
-      const haystack = [item.sku, item.category, getProductName(item)]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-      return haystack.includes(term);
-    });
-  }, [inventory, searchTerm, categoryFilter]);
+  const productPageCount = Math.max(1, Math.ceil(productTotal / PRODUCT_PAGE_SIZE));
+  const productRangeStart = (productPage - 1) * PRODUCT_PAGE_SIZE;
+  const productRangeEnd = Math.min(productPage * PRODUCT_PAGE_SIZE, productTotal);
 
   const filteredSales = useMemo(() => {
     const term = salesSearch.trim().toLowerCase();
@@ -241,6 +271,8 @@ export default function PosManager() {
         .includes(term)
     );
   }, [sales, salesSearch]);
+
+  const salesPagination = usePagination(filteredSales, 10);
 
   const filteredPatients = useMemo(() => {
     const term = customerName.trim().toLowerCase();
@@ -478,7 +510,7 @@ export default function PosManager() {
               <div>
                 <h3 className="text-base sm:text-lg font-bold text-stone-900">Products</h3>
                 <p className="text-xs text-stone-500 mt-0.5">
-                  {filteredInventory.length} item{filteredInventory.length === 1 ? "" : "s"} available to sell
+                  {productTotal} item{productTotal === 1 ? "" : "s"} available to sell
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
@@ -488,18 +520,39 @@ export default function PosManager() {
                     type="text"
                     placeholder="Search SKU, brand, model..."
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setProductPage(1);
+                    }}
                     className="pl-10 pr-4 py-2 bg-[#F2EAE1] border border-[#DCD0C0] rounded-xl text-sm text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#8B1E42]/20 focus:border-[#8B1E42] w-full"
                   />
                 </div>
                 <select
                   value={categoryFilter}
-                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  onChange={(e) => {
+                    setCategoryFilter(e.target.value);
+                    setProductPage(1);
+                  }}
                   className="bg-[#F2EAE1] border border-[#DCD0C0] rounded-xl px-3 py-2 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[#8B1E42]/20 focus:border-[#8B1E42] cursor-pointer font-medium"
                 >
                   {CATEGORY_FILTERS.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.label}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={brandFilter}
+                  onChange={(e) => {
+                    setBrandFilter(e.target.value);
+                    setProductPage(1);
+                  }}
+                  className="bg-[#F2EAE1] border border-[#DCD0C0] rounded-xl px-3 py-2 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[#8B1E42]/20 focus:border-[#8B1E42] cursor-pointer font-medium"
+                >
+                  <option value="all">All Brands</option>
+                  {brandOptions.map((brand) => (
+                    <option key={brand} value={brand}>
+                      {brand}
                     </option>
                   ))}
                 </select>
@@ -524,17 +577,17 @@ export default function PosManager() {
                     Retry
                   </button>
                 </div>
-              ) : filteredInventory.length === 0 ? (
+              ) : inventory.length === 0 ? (
                 <div className="p-8 sm:p-14 text-center text-stone-500">
                   <Store className="w-8 h-8 mx-auto text-stone-300" />
                   <p className="mt-3 text-sm font-medium">No products match your filters.</p>
                   <p className="text-xs text-stone-400 mt-1">
-                    Add inventory items first in the Inventory Management tab.
+                    Try clearing your search or filters, or add items in Inventory Management.
                   </p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {filteredInventory.map((item) => {
+                  {inventory.map((item) => {
                     const inCart = cart.find((l) => l.inventoryId === item.id);
                     const available = Number(item.quantity);
                     const outOfStock = available <= 0;
@@ -596,6 +649,15 @@ export default function PosManager() {
                 </div>
               )}
             </div>
+            <Pagination
+              page={productPage}
+              pageCount={productPageCount}
+              total={productTotal}
+              startIndex={productRangeStart}
+              endIndex={productRangeEnd}
+              onPageChange={setProductPage}
+              itemLabel="products"
+            />
           </section>
 
           {/* Cart & Payment */}
@@ -959,7 +1021,10 @@ export default function PosManager() {
                   type="text"
                   placeholder="Search receipt, customer, cashier..."
                   value={salesSearch}
-                  onChange={(e) => setSalesSearch(e.target.value)}
+                  onChange={(e) => {
+                    setSalesSearch(e.target.value);
+                    salesPagination.reset();
+                  }}
                   className="pl-10 pr-4 py-2 bg-[#F2EAE1] border border-[#DCD0C0] rounded-xl text-sm text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#8B1E42]/20 focus:border-[#8B1E42] w-full"
                 />
               </div>
@@ -1004,7 +1069,7 @@ export default function PosManager() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#EBE3D8]">
-                    {filteredSales.map((sale) => (
+                    {salesPagination.pageItems.map((sale) => (
                       <tr key={sale.id} className="hover:bg-[#F2EAE1]/50 transition-colors">
                         <td className="px-4 sm:px-6 py-4">
                           <span className="font-mono font-bold text-stone-900">{sale.receipt_number}</span>
@@ -1049,6 +1114,15 @@ export default function PosManager() {
                 </table>
               )}
             </div>
+            <Pagination
+              page={salesPagination.page}
+              pageCount={salesPagination.pageCount}
+              total={salesPagination.total}
+              startIndex={salesPagination.startIndex}
+              endIndex={salesPagination.endIndex}
+              onPageChange={salesPagination.setPage}
+              itemLabel="sales"
+            />
           </section>
         </div>
       )}

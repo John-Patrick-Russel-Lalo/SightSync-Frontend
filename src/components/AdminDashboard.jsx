@@ -33,6 +33,8 @@ import PosManager from "./admin/PosManager";
 import PortalLayout from "./PortalLayout";
 import SettingsPage from "./SettingsPage";
 import AppointmentArchive from "./AppointmentArchive";
+import Pagination from "./Pagination";
+import { usePagination } from "../utils/usePagination";
 
 // Express server mount point
 const API_USERS_URL = `${import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500"}/users`;
@@ -193,6 +195,8 @@ export default function AdminDashboard() {
     return matchesSearch && matchesRole;
   });
 
+  const usersPagination = usePagination(filteredUsers, 10);
+
   const navItems = [
     { id: "overview", label: "Overview", icon: LayoutDashboard },
     { id: "analytics", label: "Analytics", icon: ChartLine },
@@ -278,7 +282,10 @@ export default function AdminDashboard() {
                         type="text"
                         placeholder="Search by name, username, email..."
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onChange={(e) => {
+                          setSearchTerm(e.target.value);
+                          usersPagination.reset();
+                        }}
                         className="pl-10 pr-4 py-2 bg-[#F2EAE1] border border-[#DCD0C0] rounded-xl text-sm text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#8B1E42]/20 focus:border-[#8B1E42] w-full sm:w-72 transition"
                       />
                     </div>
@@ -286,7 +293,10 @@ export default function AdminDashboard() {
                     <div className="relative w-full sm:w-auto">
                       <select
                         value={roleFilter}
-                        onChange={(e) => setRoleFilter(e.target.value)}
+                        onChange={(e) => {
+                          setRoleFilter(e.target.value);
+                          usersPagination.reset();
+                        }}
                         className="w-full sm:w-auto bg-[#F2EAE1] border border-[#DCD0C0] rounded-xl px-3 py-2 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[#8B1E42]/20 focus:border-[#8B1E42] cursor-pointer font-medium"
                       >
                         <option value="all">All Roles</option>
@@ -328,7 +338,7 @@ export default function AdminDashboard() {
                       </thead>
                       <tbody className="divide-y divide-[#EBE3D8]">
                         {filteredUsers.length > 0 ? (
-                          filteredUsers.map((u) => (
+                          usersPagination.pageItems.map((u) => (
                             <tr key={u.id} className="hover:bg-[#F2EAE1]/50 transition-colors">
                               <td className="px-4 sm:px-6 py-4">
                                 <div className="flex items-center gap-3">
@@ -382,6 +392,15 @@ export default function AdminDashboard() {
                     </table>
                   )}
                 </div>
+                <Pagination
+                  page={usersPagination.page}
+                  pageCount={usersPagination.pageCount}
+                  total={usersPagination.total}
+                  startIndex={usersPagination.startIndex}
+                  endIndex={usersPagination.endIndex}
+                  onPageChange={usersPagination.setPage}
+                  itemLabel="records"
+                />
               </section>
             </div>
           )}

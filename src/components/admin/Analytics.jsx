@@ -72,16 +72,9 @@ const SEVERITY = {
     icon: Target,
     iconClass: "text-blue-700",
   },
-  positive: {
-    label: "Performing Well",
-    badge: "bg-emerald-100 text-emerald-800 border-emerald-200",
-    accent: "border-l-emerald-500",
-    icon: CircleCheck,
-    iconClass: "text-emerald-700",
-  },
 };
 
-const SEVERITY_ORDER = ["critical", "warning", "opportunity", "positive"];
+const SEVERITY_ORDER = ["critical", "warning", "opportunity"];
 
 const formatCurrency = (n) =>
   `₱${Number(n || 0).toLocaleString("en-PH", {
@@ -216,7 +209,7 @@ export default function Analytics({ onNavigate }) {
       {
         key: "inventory",
         run: async () =>
-          setInventory(toList(await fetchJson(`${API_URL}/inventory?limit=200`))),
+          setInventory(toList(await fetchJson(`${API_URL}/inventory?limit=500`))),
       },
       {
         key: "sales",
@@ -791,23 +784,6 @@ export default function Analytics({ onNavigate }) {
       });
     }
 
-    /* Sales: winners to restock */
-    if (soldLines.length > 0) {
-      const top = soldLines[0];
-      push({
-        id: "top-seller",
-        severity: "positive",
-        category: "Point of Sale",
-        title: `${top.name} is the top seller at ${formatCurrency(top.revenue)}`,
-        detail: `${formatNumber(top.quantity)} unit${
-          top.quantity === 1 ? "" : "s"
-        } moved this period. Make sure stock covers the next cycle and feature it at the counter.`,
-        action: "Check its stock level",
-        tabId: "inventory",
-        metric: formatCurrency(top.revenue),
-      });
-    }
-
     /* Patients: pending profiles */
     if (patientStats.pending > 0) {
       push({
@@ -902,20 +878,6 @@ export default function Analytics({ onNavigate }) {
       });
     }
 
-    if (list.length === 0) {
-      push({
-        id: "all-clear",
-        severity: "positive",
-        category: "Summary",
-        title: "No actions recommended right now",
-        detail:
-          "Every monitored area is inside its healthy range. Keep the reporting window rolling to catch changes early.",
-        action: null,
-        tabId: null,
-        metric: "All clear",
-      });
-    }
-
     return list.sort(
       (a, b) => SEVERITY_ORDER.indexOf(a.severity) - SEVERITY_ORDER.indexOf(b.severity)
     );
@@ -927,13 +889,12 @@ export default function Analytics({ onNavigate }) {
     inventoryStats,
     patientStats,
     salesStats,
-    soldLines,
     appointmentTrend,
     comparisonReady,
   ]);
 
   const severityCounts = useMemo(() => {
-    const counts = { critical: 0, warning: 0, opportunity: 0, positive: 0 };
+    const counts = { critical: 0, warning: 0, opportunity: 0 };
     insights.forEach((insight) => {
       counts[insight.severity] += 1;
     });
@@ -1227,7 +1188,6 @@ export default function Analytics({ onNavigate }) {
           appointmentTrend={appointmentTrend}
           salesStats={salesStats}
           appointmentStats={appointmentStats}
-          doctorPerformance={doctorPerformance}
           inventoryStats={inventoryStats}
           patientStats={patientStats}
           soldLines={soldLines}
@@ -1255,7 +1215,6 @@ function DescriptiveView({
   appointmentTrend,
   salesStats,
   appointmentStats,
-  doctorPerformance,
   inventoryStats,
   patientStats,
   soldLines,
@@ -1348,76 +1307,6 @@ function DescriptiveView({
         </Panel>
       </div>
 
-      <Panel
-        title="Doctor Performance"
-        subtitle={`${formatNumber(doctorPerformance.rows.length)} doctor account${doctorPerformance.rows.length === 1 ? "" : "s"} · top doctor handles ${formatPercent(doctorPerformance.topShare)} of bookings`}
-        icon={<Stethoscope className="w-5 h-5 text-cyan-700" />}
-      >
-        {doctorPerformance.rows.length === 0 ? (
-          <EmptyState message="No doctor accounts found." />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-left text-sm text-stone-700">
-              <thead className="bg-[#F2EAE1]/80 text-xs uppercase text-stone-500 tracking-wider border-b border-[#EBE3D8] font-semibold">
-                <tr>
-                  <th className="px-4 py-3">Doctor</th>
-                  <th className="px-4 py-3">Profile</th>
-                  <th className="px-4 py-3 text-right">Booked</th>
-                  <th className="px-4 py-3 text-right">Completed</th>
-                  <th className="px-4 py-3 text-right">Lost</th>
-                  <th className="px-4 py-3 w-48">Completion</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#EBE3D8]">
-                {doctorPerformance.rows.map((row) => (
-                  <tr key={row.id} className="hover:bg-[#F2EAE1]/50 transition-colors">
-                    <td className="px-4 py-3.5">
-                      <div className="font-bold text-stone-900">{row.name}</div>
-                      {row.specialty && (
-                        <div className="text-xs text-stone-500">{row.specialty}</div>
-                      )}
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${
-                          row.hasProfile
-                            ? "bg-emerald-100/70 text-emerald-800 border-emerald-200"
-                            : "bg-amber-100 text-amber-800 border-amber-200"
-                        }`}
-                      >
-                        {row.hasProfile ? "On file" : "Missing"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3.5 text-right font-semibold text-stone-900">
-                      {formatNumber(row.booked)}
-                    </td>
-                    <td className="px-4 py-3.5 text-right text-stone-700">
-                      {formatNumber(row.completed)}
-                    </td>
-                    <td className="px-4 py-3.5 text-right text-stone-700">
-                      {formatNumber(row.lost)}
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 h-2 rounded-full bg-[#E3D8CC] overflow-hidden">
-                          <div
-                            className="h-full bg-[#8B1E42]"
-                            style={{ width: `${row.completionRate}%` }}
-                          />
-                        </div>
-                        <span className="text-xs font-semibold text-stone-700 w-12 text-right">
-                          {formatPercent(row.completionRate)}
-                        </span>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Panel>
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Panel
           title="Top Moving Products"
@@ -1485,7 +1374,7 @@ function DescriptiveView({
 function PrescriptiveView({ insights, groups, severityCounts, reviewed, onToggleReviewed, onNavigate }) {
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {SEVERITY_ORDER.map((severity) => {
           const config = SEVERITY[severity];
           const Icon = config.icon;

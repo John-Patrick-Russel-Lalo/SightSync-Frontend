@@ -1059,6 +1059,8 @@ import SettingsPage from "./SettingsPage";
 import AppointmentArchive from "./AppointmentArchive";
 import PatientReportModal from "./PatientReportModal";
 import DoctorPatientRecords from "./doctor/DoctorPatientRecords";
+import Pagination from "./Pagination";
+import { usePagination } from "../utils/usePagination";
 
 const API_URL = import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500";
 
@@ -1468,6 +1470,8 @@ export default function DoctorDashboard() {
       app.type.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const appointmentPagination = usePagination(filteredAppointments, 10);
+
   // 4. Update appointment status via backend API
   const handleUpdateAppointmentStatus = async (appointmentId, newStatus) => {
     try {
@@ -1577,7 +1581,10 @@ export default function DoctorDashboard() {
                   type="text"
                   placeholder="Search patient or reason..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    appointmentPagination.reset();
+                  }}
                   className="pl-10 pr-4 py-2.5 bg-[#EDE3D8] border border-[#DCCFBF] rounded-full text-sm text-[#3D2E28] placeholder-[#8B7562] focus:outline-none focus:border-[#8B1E42] w-full sm:w-64"
                 />
               </div>
@@ -1607,8 +1614,8 @@ export default function DoctorDashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#E6DCCF]">
-                    {filteredAppointments.length > 0 ? (
-                      filteredAppointments.map((app) => (
+                    {appointmentPagination.total > 0 ? (
+                      appointmentPagination.pageItems.map((app) => (
                         <tr key={app.id} className="hover:bg-[#EDE3D8]/60 transition">
                           <td className="px-7 py-5 font-mono text-sm font-semibold text-[#8B1E42] whitespace-nowrap">
                             {app.time}
@@ -1648,13 +1655,25 @@ export default function DoctorDashboard() {
                 </table>
               )}
             </div>
+            <Pagination
+              page={appointmentPagination.page}
+              pageCount={appointmentPagination.pageCount}
+              total={appointmentPagination.total}
+              startIndex={appointmentPagination.startIndex}
+              endIndex={appointmentPagination.endIndex}
+              onPageChange={appointmentPagination.setPage}
+              itemLabel="appointments"
+            />
           </section>
 
           <div className="w-full lg:w-auto flex justify-start order-1 lg:order-2">
             <MonthCalendar
               scheduledDays={scheduledDays}
               selected={selectedDate}
-              onSelectDate={setSelectedDate}
+              onSelectDate={(date) => {
+                setSelectedDate(date);
+                appointmentPagination.reset();
+              }}
             />
           </div>
         </div>

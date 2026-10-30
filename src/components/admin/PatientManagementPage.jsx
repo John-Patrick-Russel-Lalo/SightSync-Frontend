@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from "react";
 import { User, X, Loader2, Edit3, AlertCircle, Search, FileText } from "lucide-react";
 import { formatWallClockDate, formatWallClockDateTime } from "../../utils/dateTime";
 import PatientReportModal from "../PatientReportModal";
+import Pagination from "../Pagination";
+import { usePagination } from "../../utils/usePagination";
 
 const API_PATIENTS_URL = `${import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500"}/patients`;
 // Appointment history removed from admin view profile
@@ -112,6 +114,8 @@ export default function PatientManagementPage({ users: initialUsers, fetchWithCr
         return matchesStatus && matchesSearch;
       });
   }, [usersList, patientProfilesMap, searchTerm, statusFilter]);
+
+  const patientPagination = usePagination(filteredPatients, 10);
 
   // Helper to extract error message from raw backend JSON response
   const getBackendErrorMessage = (data) => {
@@ -308,12 +312,18 @@ export default function PatientManagementPage({ users: initialUsers, fetchWithCr
                   type="text"
                   placeholder="Search by ID, name, phone, or email..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    patientPagination.reset();
+                  }}
                   className="pl-10 pr-4 py-2 bg-[#F2EAE1] border border-[#DCD0C0] rounded-xl text-sm text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#8B1E42]/20 focus:border-[#8B1E42] w-full"
                 />
                 {searchTerm && (
                   <button
-                    onClick={() => setSearchTerm("")}
+                    onClick={() => {
+                      setSearchTerm("");
+                      patientPagination.reset();
+                    }}
                     className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
                   >
                     <X className="w-3.5 h-3.5" />
@@ -322,7 +332,10 @@ export default function PatientManagementPage({ users: initialUsers, fetchWithCr
               </div>
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  patientPagination.reset();
+                }}
                 className="bg-[#F2EAE1] border border-[#DCD0C0] rounded-xl px-3 py-2 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[#8B1E42]/20 focus:border-[#8B1E42] cursor-pointer font-medium"
               >
                 <option value="all">All Statuses</option>
@@ -348,7 +361,7 @@ export default function PatientManagementPage({ users: initialUsers, fetchWithCr
           </thead>
           <tbody className="divide-y divide-[#EBE3D8]">
             {filteredPatients.length > 0 ? (
-              filteredPatients.map((p) => {
+              patientPagination.pageItems.map((p) => {
                 const currentStatus = getPatientStatus(p);
                 const profile = patientProfilesMap[p.id];
                 const phoneNumber = profile?.phone_number || p.phone_number || "N/A";
@@ -420,6 +433,15 @@ export default function PatientManagementPage({ users: initialUsers, fetchWithCr
           </tbody>
         </table>
         </div>
+        <Pagination
+          page={patientPagination.page}
+          pageCount={patientPagination.pageCount}
+          total={patientPagination.total}
+          startIndex={patientPagination.startIndex}
+          endIndex={patientPagination.endIndex}
+          onPageChange={patientPagination.setPage}
+          itemLabel="patients"
+        />
       </section>
 
       {selectedPatientId && (

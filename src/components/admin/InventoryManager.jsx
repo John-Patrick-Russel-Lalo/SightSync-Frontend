@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import {
   Package,
   Boxes,
@@ -17,8 +17,11 @@ import {
   Warehouse,
   CircleDollarSign,
 } from "lucide-react";
+import Pagination from "../Pagination";
 
 const API_BASE_URL = `${import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500"}/inventory`;
+const CATALOG_FETCH_LIMIT = 500;
+const PAGE_SIZE = 10;
 
 const TAB_DEFS = [
   { id: "inventory", label: "All Inventory", icon: Package },
@@ -71,6 +74,14 @@ export default function InventoryManager() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [summary, setSummary] = useState({
+    totalSkus: 0,
+    lowStock: 0,
+    stockValue: 0,
+    retailValue: 0,
+  });
 
   // Modals state
   const [isStockModalOpen, setIsStockModalOpen] = useState(false);
@@ -104,18 +115,26 @@ export default function InventoryManager() {
   };
 
   const buildEndpoint = (tab) => {
-    let endpoint = API_BASE_URL;
-    if (tab === "frames") endpoint += "/frames";
-    if (tab === "lenses") endpoint += "/lenses";
-    if (tab === "low-stock") endpoint += "/low-stock";
-    return endpoint;
+    if (tab === "frames") return `${API_BASE_URL}/frames`;
+    if (tab === "lenses") return `${API_BASE_URL}/lenses`;
+    if (tab === "low-stock") return `${API_BASE_URL}/low-stock`;
+    return API_BASE_URL;
   };
 
   const fetchData = async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetchWithCredentials(buildEndpoint(activeTab));
+      const params = new URLSearchParams({
+        limit: String(PAGE_SIZE),
+        offset: String((page - 1) * PAGE_SIZE),
+      });
+      const search = searchTerm.trim();
+      if (search) params.set("search", search);
+
+      const response = await fetchWithCredentials(
+        `${buildEndpoint(activeTab)}?${params.toString()}`
+      );
 
       if (response.status === 401 || response.status === 403) {
         throw new Error("Unauthorized: You must be logged in as an administrator.");
@@ -124,7 +143,13 @@ export default function InventoryManager() {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || result.message || "Failed to fetch");
 
-      setItems(result.data || []);
+      const rows = result.data || [];
+      setItems(rows);
+      setTotalItems(Number(result.total ?? result.count ?? rows.length));
+
+      if (rows.length === 0 && page > 1) {
+        setPage((current) => Math.max(1, current - 1));
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -132,52 +157,39 @@ export default function InventoryManager() {
     }
   };
 
+  const fetchSummary = async () => {
+    try {
+      const response = await fetchWithCredentials(`${API_BASE_URL}/summary`);
+      if (!response.ok) return;
+      const result = await response.json();
+      if (result.data) setSummary(result.data);
+    } catch {
+      // Summary cards keep their last known values if this request fails.
+    }
+  };
+
   useEffect(() => {
-    const timer = setTimeout(() => fetchData(), 0);
+    const timer = setTimeout(() => fetchData(), 250);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, page, searchTerm]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => fetchSummary(), 0);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
-  const filteredItems = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase();
-    if (!term) return items;
-
-    return items.filter((item) => {
-      const haystack = [
-        item.sku,
-        item.category,
-        item.brand,
-        item.model_number,
-        item.lens_type,
-        item.color,
-        item.frame?.brand,
-        item.frame?.model_number,
-        item.frame?.color,
-        item.lens?.brand,
-        item.lens?.lens_type,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-
-      return haystack.includes(term);
-    });
-  }, [items, searchTerm]);
-
-  // Summary stats for the inventory tabs
-  const summary = useMemo(() => {
-    const lowStock = items.filter((i) => Number(i.quantity) <= Number(i.reorder_level)).length;
-    const stockValue = items.reduce((sum, i) => sum + Number(i.quantity || 0) * Number(i.unit_cost || 0), 0);
-    const retailValue = items.reduce((sum, i) => sum + Number(i.quantity || 0) * Number(i.selling_price || 0), 0);
-    return { lowStock, stockValue, retailValue };
-  }, [items]);
+  const pageCount = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+  const rangeStart = (page - 1) * PAGE_SIZE;
+  const rangeEnd = Math.min(page * PAGE_SIZE, totalItems);
 
   const fetchCatalogs = async () => {
     setCatalogLoading(true);
     try {
       const [framesRes, lensesRes] = await Promise.all([
-        fetchWithCredentials(`${API_BASE_URL}/frames`),
-        fetchWithCredentials(`${API_BASE_URL}/lenses`),
+        fetchWithCredentials(`${API_BASE_URL}/frames?limit=${CATALOG_FETCH_LIMIT}`),
+        fetchWithCredentials(`${API_BASE_URL}/lenses?limit=${CATALOG_FETCH_LIMIT}`),
       ]);
 
       if (framesRes.status === 401 || framesRes.status === 403 || lensesRes.status === 401 || lensesRes.status === 403) {
@@ -230,6 +242,7 @@ export default function InventoryManager() {
       setIsStockModalOpen(false);
       setSelectedItem(null);
       fetchData();
+      fetchSummary();
     } catch (err) {
       alert(err.message);
     }
@@ -275,6 +288,7 @@ export default function InventoryManager() {
 
       setIsCreateModalOpen(false);
       fetchData();
+      fetchSummary();
     } catch (err) {
       alert(err.message);
     } finally {
@@ -304,6 +318,7 @@ export default function InventoryManager() {
       if (!response.ok) throw new Error(result.error || result.message || "Delete failed");
 
       fetchData();
+      fetchSummary();
     } catch (err) {
       alert(err.message);
     }
@@ -346,7 +361,10 @@ export default function InventoryManager() {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  setPage(1);
+                }}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition whitespace-nowrap ${
                   isActive
                     ? "bg-[#8B1E42] text-white shadow-sm"
@@ -361,7 +379,10 @@ export default function InventoryManager() {
         </div>
 
         <button
-          onClick={fetchData}
+          onClick={() => {
+            fetchData();
+            fetchSummary();
+          }}
           className="p-2 text-stone-500 hover:text-stone-800 rounded-xl hover:bg-[#E2D6C7] transition"
           title="Refresh"
         >
@@ -374,7 +395,7 @@ export default function InventoryManager() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
           <StatCard
             title="Total SKUs"
-            value={items.length}
+            value={summary.totalSkus}
             icon={<Warehouse className="w-5 h-5 text-[#8B1E42]" />}
             accent="Stock records in catalog"
           />
@@ -401,7 +422,7 @@ export default function InventoryManager() {
               {TAB_DEFS.find((t) => t.id === activeTab)?.label}
             </h3>
             <p className="text-xs text-stone-500 mt-0.5">
-              {filteredItems.length} record{filteredItems.length === 1 ? "" : "s"} loaded
+              {totalItems} record{totalItems === 1 ? "" : "s"} loaded
             </p>
           </div>
 
@@ -411,7 +432,10 @@ export default function InventoryManager() {
               type="text"
               placeholder="Search SKU, brand, model..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setPage(1);
+              }}
               className="pl-10 pr-4 py-2 bg-[#F2EAE1] border border-[#DCD0C0] rounded-xl text-sm text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#8B1E42]/20 focus:border-[#8B1E42] w-full"
             />
           </div>
@@ -435,7 +459,7 @@ export default function InventoryManager() {
                 Retry
               </button>
             </div>
-          ) : filteredItems.length === 0 ? (
+          ) : items.length === 0 ? (
             <div className="p-8 sm:p-14 text-center text-stone-500">
               <Boxes className="w-8 h-8 mx-auto text-stone-300" />
               <p className="mt-3 text-sm font-medium">No records found.</p>
@@ -481,7 +505,7 @@ export default function InventoryManager() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#EBE3D8]">
-                {filteredItems.map((item) => (
+                {items.map((item) => (
                   <tr key={item.id} className="hover:bg-[#F2EAE1]/50 transition-colors">
                     {activeTab === "frames" && (
                       <>
@@ -574,6 +598,15 @@ export default function InventoryManager() {
             </table>
           )}
         </div>
+        <Pagination
+          page={page}
+          pageCount={pageCount}
+          total={totalItems}
+          startIndex={rangeStart}
+          endIndex={rangeEnd}
+          onPageChange={setPage}
+          itemLabel="records"
+        />
       </section>
 
       {/* Modal: Adjust Stock */}

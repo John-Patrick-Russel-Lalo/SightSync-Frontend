@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Search, User, FileText, Eye, Pill } from "lucide-react";
+import Pagination from "../Pagination";
+import { usePagination } from "../../utils/usePagination";
 
 const API_BASE = `${import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500"}`;
 
@@ -104,6 +106,8 @@ export default function DoctorPatientRecords() {
     return name.includes(term) || email.includes(term);
   });
 
+  const patientPagination = usePagination(filtered, 10);
+
   return (
     <div className="space-y-6">
       <div>
@@ -124,7 +128,10 @@ export default function DoctorPatientRecords() {
                 type="text"
                 placeholder="Search patients..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  patientPagination.reset();
+                }}
                 className="pl-10 pr-4 py-2 bg-[#F2EAE1] border border-[#DCCFBF] rounded-xl text-sm text-[#3D2E28] placeholder-[#8B7562] w-full focus:outline-none focus:ring-2 focus:ring-[#8B1E42]/20 focus:border-[#8B1E42]"
               />
             </div>
@@ -151,7 +158,7 @@ export default function DoctorPatientRecords() {
                     </td>
                   </tr>
                 ) : (
-                  filtered.map((p) => (
+                  patientPagination.pageItems.map((p) => (
                     <tr key={p.id} className="hover:bg-[#F2EAE1]/40 transition-colors">
                       <td className="px-4 sm:px-6 py-4">
                         <div className="flex items-center gap-3">
@@ -176,6 +183,15 @@ export default function DoctorPatientRecords() {
               </tbody>
             </table>
           </div>
+          <Pagination
+            page={patientPagination.page}
+            pageCount={patientPagination.pageCount}
+            total={patientPagination.total}
+            startIndex={patientPagination.startIndex}
+            endIndex={patientPagination.endIndex}
+            onPageChange={patientPagination.setPage}
+            itemLabel="patients"
+          />
         </section>
       ) : (
         <section className="bg-[#F8F3EC] border border-[#DCCFBF] rounded-3xl shadow-sm overflow-hidden">

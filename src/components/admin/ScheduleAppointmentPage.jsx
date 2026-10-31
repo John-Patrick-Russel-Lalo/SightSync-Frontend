@@ -29,6 +29,7 @@ import {
   toLocalDateStringFromValue,
   wallClockTimeMs,
 } from "../../utils/dateTime";
+import { cachedFetch } from "../../utils/apiCache";
 
 const API_APPOINTMENTS_BASE = `${import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500"}/appointments`;
 const API_USERS_URL = `${import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500"}/users`;
@@ -124,17 +125,7 @@ export default function ScheduleAppointmentPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Utility fetch function including credentials
-  const fetchWithCredentials = async (url, options = {}) => {
-    return fetch(url, {
-      ...options,
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        ...options.headers,
-      },
-    });
-  };
+  const fetchWithCredentials = (url, options = {}) => cachedFetch(url, options);
 
   // Helper function to return proper status badge color styles
   const getStatusBadgeStyle = (status) => {
@@ -179,7 +170,9 @@ export default function ScheduleAppointmentPage() {
 
   const formatPeso = (value) => {
     const amount = Number(value);
-    return Number.isFinite(amount) && amount > 0 ? `₱${amount.toFixed(2)}` : "—";
+    return Number.isFinite(amount) && amount > 0
+      ? `₱${amount.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+      : "—";
   };
 
   // Revoke the proof object URL when the viewer closes or the page unmounts.

@@ -26,6 +26,8 @@ import {
 import { parseWallClock, toLocalDateString } from "../../utils/dateTime";
 import Pagination from "../Pagination";
 import { usePagination } from "../../utils/usePagination";
+import { cachedFetch, prefetch } from "../../utils/apiCache";
+import { formatCount } from "../../utils/formatNumber";
 
 const API_POS_URL = `${import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500"}/pos`;
 const API_INVENTORY_URL = `${import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500"}/inventory`;
@@ -37,12 +39,6 @@ const inputClass =
 const TAB_DEFS = [
   { id: "checkout", label: "Checkout", icon: ShoppingCart },
   { id: "sales", label: "Sales History", icon: History },
-];
-
-const PAYMENT_METHODS = [
-  { id: "cash", label: "Cash", icon: Banknote },
-  { id: "card", label: "Card", icon: CreditCard },
-  { id: "qr", label: "QR", icon: QrCode },
 ];
 
 const CATEGORY_FILTERS = [
@@ -75,6 +71,7 @@ export default function PosManager() {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [brandFilter, setBrandFilter] = useState("all");
+  const [stockFilter, setStockFilter] = useState("all");
   const [brandOptions, setBrandOptions] = useState([]);
   const [productPage, setProductPage] = useState(1);
   const [productTotal, setProductTotal] = useState(0);
@@ -85,7 +82,6 @@ export default function PosManager() {
   const [patientsLoading, setPatientsLoading] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [patientDropdownOpen, setPatientDropdownOpen] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState("cash");
   const [amountTendered, setAmountTendered] = useState("");
   const [discountAmount, setDiscountAmount] = useState("");
   const [taxRate, setTaxRate] = useState("");
@@ -104,16 +100,7 @@ export default function PosManager() {
   const [selectedSale, setSelectedSale] = useState(null);
   const [saleDetailLoading, setSaleDetailLoading] = useState(false);
 
-  const fetchWithCredentials = async (url, options = {}) => {
-    return fetch(url, {
-      ...options,
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        ...options.headers,
-      },
-    });
-  };
+  const fetchWithCredentials = (url, options = {}) => cachedFetch(url, options);
 
   const getProductName = (item) => {
     if (item.frame)
@@ -134,10 +121,10 @@ export default function PosManager() {
       if (search) params.set("search", search);
       if (categoryFilter !== "all") params.set("category", categoryFilter);
       if (brandFilter !== "all") params.set("brand", brandFilter);
+      if (stockFilter !== "all") params.set("stockStatus", stockFilter);
 
-      const response = await fetchWithCredentials(
-        `${API_INVENTORY_URL}?${params.toString()}`
-      );
+      const requestUrl = `${API_INVENTORY_URL}?${params.toString()}`;
+      const response = await fetchWithCredentials(requestUrl);
       if (response.status === 401 || response.status === 403) {
         throw new Error("Unauthorized: You must be logged in as an administrator.");
       }
@@ -145,8 +132,15 @@ export default function PosManager() {
       if (!response.ok) throw new Error(result.error || result.message || "Failed to fetch inventory");
 
       const rows = result.data || [];
+      const total = Number(result.total ?? result.count ?? rows.length);
       setInventory(rows);
-      setProductTotal(Number(result.total ?? result.count ?? rows.length));
+      setProductTotal(total);
+
+      if (rows.length === PRODUCT_PAGE_SIZE && productPage * PRODUCT_PAGE_SIZE < total) {
+        const nextParams = new URLSearchParams(params);
+        nextParams.set("offset", String(productPage * PRODUCT_PAGE_SIZE));
+        prefetch(`${API_INVENTORY_URL}?${nextParams.toString()}`);
+      }
 
       if (rows.length === 0 && productPage > 1) {
         setProductPage((current) => Math.max(1, current - 1));
@@ -236,7 +230,7 @@ export default function PosManager() {
     const timer = setTimeout(() => fetchInventory(), 250);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [productPage, searchTerm, categoryFilter, brandFilter]);
+  }, [productPage, searchTerm, categoryFilter, brandFilter, stockFilter]);
 
   useEffect(() => {
     if (activeTab !== "sales") return;
@@ -364,11 +358,11 @@ export default function PosManager() {
   const tax = round2(subtotal * ((Number(taxRate) || 0) / 100));
   const total = round2(subtotal - discount + tax);
   const tendered = Number(amountTendered) || 0;
-  const change = paymentMethod === "cash" ? round2(Math.max(0, tendered - total)) : null;
+  const change = round2(Math.max(0, tendered - total));
 
   const handleCompleteSale = async () => {
     if (cart.length === 0) return;
-    if (paymentMethod === "cash" && tendered < total) {
+    if (tendered < total) {
       setCheckoutError("Cash tendered must be at least the total amount.");
       return;
     }
@@ -379,7 +373,7 @@ export default function PosManager() {
         items: cart.map((l) => ({ inventoryId: l.inventoryId, quantity: l.quantity })),
         customerName: customerName || null,
         patientId: selectedPatient?.id || null,
-        paymentMethod,
+        paymentMethod: "cash",
         amountTendered: amountTendered === "" || amountTendered == null ? null : tendered,
         discountAmount: Number(discountAmount) || 0,
         taxRate: Number(taxRate) || 0,
@@ -449,7 +443,11 @@ export default function PosManager() {
     }
   };
 
-  const formatCurrency = (n) => `₱${Number(n || 0).toFixed(2)}`;
+  const formatCurrency = (n) =>
+    `₱${Number(n || 0).toLocaleString("en-PH", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
   const formatDate = (d) => {
     const parsed = parseWallClock(d);
     if (!parsed) return "N/A";
@@ -510,10 +508,10 @@ export default function PosManager() {
               <div>
                 <h3 className="text-base sm:text-lg font-bold text-stone-900">Products</h3>
                 <p className="text-xs text-stone-500 mt-0.5">
-                  {productTotal} item{productTotal === 1 ? "" : "s"} available to sell
+                  {formatCount(productTotal)} item{productTotal === 1 ? "" : "s"} available to sell
                 </p>
               </div>
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3">
                 <div className="relative w-full sm:w-64">
                   <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
                   <input
@@ -555,6 +553,18 @@ export default function PosManager() {
                       {brand}
                     </option>
                   ))}
+                </select>
+                <select
+                  value={stockFilter}
+                  onChange={(e) => {
+                    setStockFilter(e.target.value);
+                    setProductPage(1);
+                  }}
+                  className="bg-[#F2EAE1] border border-[#DCD0C0] rounded-xl px-3 py-2 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[#8B1E42]/20 focus:border-[#8B1E42] cursor-pointer font-medium"
+                >
+                  <option value="all">All Stock</option>
+                  <option value="low">Low Stock</option>
+                  <option value="good">Good Stock</option>
                 </select>
               </div>
             </div>
@@ -665,7 +675,7 @@ export default function PosManager() {
             <div className="p-4 sm:p-5 border-b border-[#EBE3D8] flex items-center justify-between bg-[#FAF7F2]">
               <div>
                 <h3 className="text-base sm:text-lg font-bold text-stone-900">Current Order</h3>
-                <p className="text-xs text-stone-500 mt-0.5">{cart.length} line item{cart.length === 1 ? "" : "s"}</p>
+                <p className="text-xs text-stone-500 mt-0.5">{formatCount(cart.length)} line item{cart.length === 1 ? "" : "s"}</p>
               </div>
               {cart.length > 0 && (
                 <button
@@ -781,12 +791,10 @@ export default function PosManager() {
                   <span className="font-bold text-stone-900 text-base">Total</span>
                   <span className="font-extrabold text-[#8B1E42] text-xl">{formatCurrency(total)}</span>
                 </div>
-                {paymentMethod === "cash" && change !== null && (
-                  <div className="flex justify-between text-stone-600">
-                    <span>Change</span>
-                    <span className="font-bold text-emerald-700">{formatCurrency(change)}</span>
-                  </div>
-                )}
+                <div className="flex justify-between text-stone-600">
+                  <span>Change</span>
+                  <span className="font-bold text-emerald-700">{formatCurrency(change)}</span>
+                </div>
               </div>
 
               {/* Payment form */}
@@ -868,33 +876,6 @@ export default function PosManager() {
 
                 <div>
                   <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-2">
-                    Payment Method
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {PAYMENT_METHODS.map((method) => {
-                      const Icon = method.icon;
-                      const isActive = paymentMethod === method.id;
-                      return (
-                        <button
-                          type="button"
-                          key={method.id}
-                          onClick={() => setPaymentMethod(method.id)}
-                          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl border text-xs font-semibold transition ${
-                            isActive
-                              ? "bg-[#8B1E42] text-white border-[#8B1E42] shadow-sm"
-                              : "bg-[#F2EAE1] text-stone-700 border-[#DCD0C0] hover:bg-white/60"
-                          }`}
-                        >
-                          <Icon className="w-3.5 h-3.5" />
-                          {method.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-2">
                     Amount Tendered
                   </label>
                   <div className="relative">
@@ -903,18 +884,16 @@ export default function PosManager() {
                       type="number"
                       min="0"
                       step="0.01"
-                      placeholder={paymentMethod === "cash" ? "Cash received" : "Optional"}
+                      placeholder="Cash received"
                       value={amountTendered}
                       onChange={(e) => setAmountTendered(e.target.value)}
                       className={`${inputClass} pl-10`}
                     />
                   </div>
                   <p className="text-xs text-stone-500 mt-1.5">
-                    {paymentMethod === "cash"
-                      ? tendered >= total
-                        ? `Change: ${formatCurrency(change)}`
-                        : `Short of ${formatCurrency(round2(total - tendered))}`
-                      : "Card / QR payments do not require change."}
+                    {tendered >= total
+                      ? `Change: ${formatCurrency(change)}`
+                      : `Short of ${formatCurrency(round2(total - tendered))}`}
                   </p>
                 </div>
 
@@ -1012,7 +991,7 @@ export default function PosManager() {
               <div>
                 <h3 className="text-base sm:text-lg font-bold text-stone-900">Sales Records</h3>
                 <p className="text-xs text-stone-500 mt-0.5">
-                  {filteredSales.length} record{filteredSales.length === 1 ? "" : "s"} loaded
+                  {formatCount(filteredSales.length)} record{filteredSales.length === 1 ? "" : "s"} loaded
                 </p>
               </div>
               <div className="relative w-full sm:w-72">
@@ -1275,7 +1254,7 @@ function StatCard({ title, value, icon, accent }) {
         <span className="text-xs font-semibold uppercase tracking-wider text-stone-500">{title}</span>
         <div className="p-2.5 bg-[#F2EAE1] rounded-xl border border-[#E3D8CC]">{icon}</div>
       </div>
-      <div className="text-2xl font-extrabold text-stone-900">{value}</div>
+      <div className="text-2xl font-extrabold text-stone-900">{formatCount(value)}</div>
       <div className="text-xs text-stone-500 font-medium">{accent}</div>
     </div>
   );

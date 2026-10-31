@@ -19,12 +19,16 @@ import {
   parseWallClock,
   toLocalDateString,
 } from "../../utils/dateTime";
+import { cachedFetch } from "../../utils/apiCache";
+import { formatCount } from "../../utils/formatNumber";
 
 const API_URL = import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500";
 
 function formatPeso(value) {
   const amount = Number(value);
-  return Number.isFinite(amount) && amount > 0 ? `₱${amount.toFixed(2)}` : null;
+  return Number.isFinite(amount) && amount > 0
+    ? `₱${amount.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    : null;
 }
 
 function formatAppointment(app) {
@@ -52,7 +56,7 @@ function formatAppointment(app) {
 }
 
 async function fetchMyAppointments() {
-  const response = await fetch(`${API_URL}/appointments/my`, {
+      const response = await cachedFetch(`${API_URL}/appointments/my`, {
     method: "GET",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
@@ -70,7 +74,7 @@ async function fetchMyAppointments() {
 }
 
 async function fetchAvailableDoctors() {
-  const response = await fetch(`${API_URL}/doctors/available`, {
+      const response = await cachedFetch(`${API_URL}/doctors/available`, {
     method: "GET",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
@@ -268,7 +272,7 @@ export default function PatientAppointments() {
                 <div className="text-[10px] sm:text-xs uppercase font-bold tracking-wider text-[#C08A3E] truncate">
                   Pending
                 </div>
-                <div className="text-2xl sm:text-3xl font-bold text-[#3D2E28] mt-1">{pendingCount}</div>
+                <div className="text-2xl sm:text-3xl font-bold text-[#3D2E28] mt-1">{formatCount(pendingCount)}</div>
               </div>
               <div className="bg-[#C08A3E]/15 text-[#C08A3E] p-2 sm:p-2.5 rounded-xl shrink-0">
                 <Hourglass className="w-5 h-5" />
@@ -281,7 +285,7 @@ export default function PatientAppointments() {
                 <div className="text-[10px] sm:text-xs uppercase font-bold tracking-wider text-[#52795A] truncate">
                   Approved
                 </div>
-                <div className="text-2xl sm:text-3xl font-bold text-[#3D2E28] mt-1">{approvedCount}</div>
+                <div className="text-2xl sm:text-3xl font-bold text-[#3D2E28] mt-1">{formatCount(approvedCount)}</div>
               </div>
               <div className="bg-[#52795A]/15 text-[#52795A] p-2 sm:p-2.5 rounded-xl shrink-0">
                 <Check className="w-5 h-5" />

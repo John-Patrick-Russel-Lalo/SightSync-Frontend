@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { formatWallClockDate, parseWallClock, toLocalDateString } from "../../utils/dateTime";
 import { useNotifications } from "../../context/NotificationContext";
+import { cachedFetch } from "../../utils/apiCache";
 
 const API_URL = import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500";
 
@@ -42,7 +43,9 @@ const GCASH = {
 
 function formatPeso(value) {
   const amount = Number(value);
-  return Number.isFinite(amount) && amount > 0 ? `₱${amount.toFixed(2)}` : null;
+  return Number.isFinite(amount) && amount > 0
+    ? `₱${amount.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    : null;
 }
 
 // Appointments can only be booked from today up to this far ahead, so the
@@ -80,7 +83,7 @@ export default function BookAppointment() {
   useEffect(() => {
     let cancelled = false;
 
-    fetch(`${API_URL}/appointments/my`, {
+    cachedFetch(`${API_URL}/appointments/my`, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -101,7 +104,7 @@ export default function BookAppointment() {
   useEffect(() => {
     let cancelled = false;
 
-    fetch(`${API_URL}/doctors/available`, {
+    cachedFetch(`${API_URL}/doctors/available`, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -138,7 +141,7 @@ export default function BookAppointment() {
 
     let cancelled = false;
 
-    fetch(`${API_URL}/appointments/${bookingDoctorId}/${bookingDateStr}`, {
+    cachedFetch(`${API_URL}/appointments/${bookingDoctorId}/${bookingDateStr}`, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -288,7 +291,7 @@ export default function BookAppointment() {
       if (notes) formData.append("notes", notes);
       formData.append("paymentProof", paymentProof);
 
-      const response = await fetch(`${API_URL}/appointments/patient`, {
+      const response = await cachedFetch(`${API_URL}/appointments/patient`, {
         method: "POST",
         credentials: "include",
         body: formData,
@@ -311,7 +314,7 @@ export default function BookAppointment() {
       setPaymentProof(null);
       setPaymentProofPreview("");
 
-      const slotsRes = await fetch(
+      const slotsRes = await cachedFetch(
         `${API_URL}/appointments/${bookingDoctorId}/${bookingDateStr}`,
         {
           method: "GET",
@@ -326,7 +329,7 @@ export default function BookAppointment() {
 
       // Refresh the patient's own requests so the slot they just asked for is
       // marked as requested instead of being offered again.
-      const myRes = await fetch(`${API_URL}/appointments/my`, {
+      const myRes = await cachedFetch(`${API_URL}/appointments/my`, {
         method: "GET",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

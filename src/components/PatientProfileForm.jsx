@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { cachedFetch } from "../utils/apiCache";
 
 const API_BASE = `${import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500"}`;
 
@@ -29,7 +30,7 @@ export default function PatientProfileForm() {
       setLoading(true);
       setError("");
 
-      const response = await fetch(`${API_BASE}/patients`, {
+      const response = await cachedFetch(`${API_BASE}/patients`, {
         headers: {
           "Content-Type": "application/json",
         },
@@ -71,7 +72,7 @@ export default function PatientProfileForm() {
     setSuccess("");
 
     try {
-      const response = await fetch(`${API_BASE}/patients/profile`, {
+      const response = await cachedFetch(`${API_BASE}/patients/profile`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

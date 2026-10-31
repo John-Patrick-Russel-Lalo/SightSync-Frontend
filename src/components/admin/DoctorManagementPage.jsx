@@ -618,6 +618,8 @@ import {
   CheckCircle2,
   Loader2,
 } from "lucide-react";
+import { cachedFetch } from "../../utils/apiCache";
+import { formatCount } from "../../utils/formatNumber";
 
 // Sub-component for managing doctor weekly working schedules
 function DoctorScheduleTab({ userId, API_DOCTORS_URL }) {
@@ -649,9 +651,9 @@ function DoctorScheduleTab({ userId, API_DOCTORS_URL }) {
     const fetchSchedules = async () => {
       try {
         setLoading(true);
-        const res = await fetch(`${API_DOCTORS_URL}/${userId}/schedules`, {
-          credentials: "include",
-        });
+      const res = await cachedFetch(`${API_DOCTORS_URL}/${userId}/schedules`, {
+        credentials: "include",
+      });
         const result = await res.json();
 
         if (res.ok && result.data && Array.isArray(result.data)) {
@@ -714,7 +716,7 @@ function DoctorScheduleTab({ userId, API_DOCTORS_URL }) {
         })),
       };
 
-      const res = await fetch(`${API_DOCTORS_URL}/${userId}/schedules`, {
+      const res = await cachedFetch(`${API_DOCTORS_URL}/${userId}/schedules`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -862,7 +864,7 @@ export default function DoctorManagementPage() {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch(`${API_DOCTORS_URL}?limit=50&offset=0`, {
+      const res = await cachedFetch(`${API_DOCTORS_URL}?limit=50&offset=0`, {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
       });
@@ -879,7 +881,7 @@ export default function DoctorManagementPage() {
   const fetchDoctorUsers = async () => {
     try {
       setLoadingUsers(true);
-      const res = await fetch(API_USERS_URL, {
+      const res = await cachedFetch(API_USERS_URL, {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
       });
@@ -969,7 +971,7 @@ export default function DoctorManagementPage() {
         slotDurationMinutes: parseInt(formData.slotDurationMinutes, 10) || 30,
       };
 
-      const res = await fetch(url, {
+      const res = await cachedFetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -1005,7 +1007,7 @@ export default function DoctorManagementPage() {
     }
 
     try {
-      const res = await fetch(`${API_DOCTORS_URL}/${userId}`, {
+      const res = await cachedFetch(`${API_DOCTORS_URL}/${userId}`, {
         method: "DELETE",
         credentials: "include",
       });
@@ -1056,7 +1058,7 @@ export default function DoctorManagementPage() {
           <div>
             <h3 className="text-base sm:text-lg font-bold text-stone-900">Doctor Profiles</h3>
             <p className="text-xs text-stone-500 mt-0.5">
-              {filteredDoctors.length} record{filteredDoctors.length === 1 ? "" : "s"} loaded
+              {formatCount(filteredDoctors.length)} record{filteredDoctors.length === 1 ? "" : "s"} loaded
             </p>
           </div>
           <div className="relative w-full sm:w-72">
@@ -1141,7 +1143,7 @@ export default function DoctorManagementPage() {
                           Fee:{" "}
                           <strong className="text-stone-800">
                             {doc.consultation_fee
-                              ? `₱${parseFloat(doc.consultation_fee).toFixed(2)}`
+                              ? `₱${parseFloat(doc.consultation_fee).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                               : "Not Set"}
                           </strong>
                         </span>

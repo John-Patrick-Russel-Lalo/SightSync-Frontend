@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Search, User, FileText, Eye, Pill } from "lucide-react";
 import Pagination from "../Pagination";
 import { usePagination } from "../../utils/usePagination";
+import { cachedFetch } from "../../utils/apiCache";
+import { formatCount } from "../../utils/formatNumber";
 
 const API_BASE = `${import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500"}`;
 
@@ -33,7 +35,7 @@ export default function DoctorPatientRecords() {
   const fetchPatients = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_BASE}/users`, {
+      const res = await cachedFetch(`${API_BASE}/users`, {
         credentials: "include",
         headers: { "Content-Type": "application/json" },
       });
@@ -55,7 +57,7 @@ export default function DoctorPatientRecords() {
     try {
       setSelectedPatient(patient);
       setMessage(null);
-      const res = await fetch(`${API_BASE}/patients/${patient.id}`, {
+      const res = await cachedFetch(`${API_BASE}/patients/${patient.id}`, {
         credentials: "include",
         headers: { "Content-Type": "application/json" },
       });
@@ -80,7 +82,7 @@ export default function DoctorPatientRecords() {
     setSaving(true);
     setMessage(null);
     try {
-      const res = await fetch(`${API_BASE}/patients`, {
+      const res = await cachedFetch(`${API_BASE}/patients`, {
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -120,7 +122,7 @@ export default function DoctorPatientRecords() {
           <div className="p-4 sm:p-5 border-b border-[#DCCFBF] flex items-center justify-between gap-4">
             <div>
               <h3 className="text-base sm:text-lg font-bold text-[#3D2E28]">Patients</h3>
-              <p className="text-xs text-[#8B7562] mt-0.5">{filtered.length} patient{filtered.length === 1 ? "" : "s"}</p>
+              <p className="text-xs text-[#8B7562] mt-0.5">{formatCount(filtered.length)} patient{filtered.length === 1 ? "" : "s"}</p>
             </div>
             <div className="relative w-full sm:w-72">
               <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8B7562]" />

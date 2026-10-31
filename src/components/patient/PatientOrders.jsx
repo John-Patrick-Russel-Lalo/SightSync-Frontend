@@ -12,6 +12,8 @@ import {
   Banknote,
 } from "lucide-react";
 import { formatWallClockDateTime } from "../../utils/dateTime";
+import { cachedFetch } from "../../utils/apiCache";
+import { formatCount } from "../../utils/formatNumber";
 
 const API_URL =
   import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500";
@@ -172,7 +174,7 @@ export default function PatientOrders() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_URL}/pos/sales/mine?limit=100`, {
+      const response = await cachedFetch(`${API_URL}/pos/sales/mine?limit=100`, {
         method: "GET",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -280,7 +282,7 @@ export default function PatientOrders() {
                 <div className="flex items-center justify-center gap-1.5 text-[#8B1E42] mb-1">
                   {stat.icon}
                 </div>
-                <div className="text-xl font-extrabold text-stone-900">{stat.value}</div>
+                <div className="text-xl font-extrabold text-stone-900">{formatCount(stat.value)}</div>
                 <div className="text-[11px] font-medium text-stone-500 uppercase tracking-wider mt-0.5">
                   {stat.label}
                 </div>

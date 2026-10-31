@@ -1061,6 +1061,8 @@ import PatientReportModal from "./PatientReportModal";
 import DoctorPatientRecords from "./doctor/DoctorPatientRecords";
 import Pagination from "./Pagination";
 import { usePagination } from "../utils/usePagination";
+import { cachedFetch } from "../utils/apiCache";
+import { formatCount } from "../utils/formatNumber";
 
 const API_URL = import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500";
 
@@ -1175,7 +1177,7 @@ export default function DoctorDashboard() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`${API_URL}/appointments/${doctorId}`, {
+      const response = await cachedFetch(`${API_URL}/appointments/${doctorId}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -1259,7 +1261,7 @@ export default function DoctorDashboard() {
     setNotesError(null);
 
     try {
-      const response = await fetch(`${API_URL}/appointments/patient/${patientId}/notes`, {
+      const response = await cachedFetch(`${API_URL}/appointments/patient/${patientId}/notes`, {
         method: "GET",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -1304,7 +1306,7 @@ export default function DoctorDashboard() {
       setLoadingProfile(true);
 
       // Adjust endpoint base URL path if needed (e.g., http://localhost:3500/patients/ or /users/)
-      const response = await fetch(`${API_URL}/patients/${app.patientId}`, {
+      const response = await cachedFetch(`${API_URL}/patients/${app.patientId}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -1371,7 +1373,7 @@ export default function DoctorDashboard() {
     setProfileNotice(null);
 
     try {
-      const response = await fetch(`${API_URL}/patients`, {
+      const response = await cachedFetch(`${API_URL}/patients`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -1416,7 +1418,7 @@ export default function DoctorDashboard() {
     setNotesError(null);
 
     try {
-      const response = await fetch(`${API_URL}/appointments/${selectedAppointment.id}/notes`, {
+      const response = await cachedFetch(`${API_URL}/appointments/${selectedAppointment.id}/notes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -1478,7 +1480,7 @@ export default function DoctorDashboard() {
       setIsUpdatingStatus(true);
       setStatusError(null);
 
-      const response = await fetch(`${API_URL}/appointments/${appointmentId}/status`, {
+      const response = await cachedFetch(`${API_URL}/appointments/${appointmentId}/status`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -2009,7 +2011,7 @@ export default function DoctorDashboard() {
                 </label>
                 {!loadingNotes && !notesError && (
                   <span className="text-[10px] text-[#8B7562] font-medium">
-                    {patientNotes.length} note{patientNotes.length === 1 ? "" : "s"}
+                    {formatCount(patientNotes.length)} note{patientNotes.length === 1 ? "" : "s"}
                   </span>
                 )}
               </div>

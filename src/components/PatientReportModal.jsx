@@ -18,10 +18,12 @@ import {
   Sparkles,
 } from "lucide-react";
 import { formatWallClockDate, formatWallClockDateTime } from "../utils/dateTime";
+import { cachedFetch } from "../utils/apiCache";
+import { formatCount } from "../utils/formatNumber";
 
 const API_URL = import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500";
 
-const defaultFetch = (url, options) => fetch(url, { ...options, credentials: "include" });
+const defaultFetch = (url, options) => cachedFetch(url, options);
 
 const STATUS_LABELS = {
   pending: "Pending",
@@ -497,7 +499,7 @@ export default function PatientReportModal({ patientId, patientName = "Patient",
                           <ul className="mt-2 space-y-1 border-t border-[#E3D8CC] pt-2">
                             {order.items.map((item) => (
                               <li key={item.id} className="text-xs text-stone-600 flex items-center justify-between gap-2">
-                                <span className="truncate">{item.product_name} × {item.quantity}</span>
+                                <span className="truncate">{item.product_name} × {formatCount(item.quantity)}</span>
                                 <span className="shrink-0">₱{(Number(item.line_total) || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span>
                               </li>
                             ))}

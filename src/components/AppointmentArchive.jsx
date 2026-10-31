@@ -13,6 +13,7 @@ import {
 import { formatWallClockDateTime } from "../utils/dateTime";
 import Pagination from "./Pagination";
 import { usePagination } from "../utils/usePagination";
+import { cachedFetch, invalidateApiCache } from "../utils/apiCache";
 
 const API_URL = import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500";
 
@@ -64,7 +65,7 @@ export default function AppointmentArchive({ scope = "my", users = null }) {
   useEffect(() => {
     let cancelled = false;
 
-    fetch(endpoint, {
+    cachedFetch(endpoint, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -99,7 +100,7 @@ export default function AppointmentArchive({ scope = "my", users = null }) {
     if (scope !== "my") return;
 
     let cancelled = false;
-    fetch(`${API_URL}/doctors/available`, {
+    cachedFetch(`${API_URL}/doctors/available`, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -122,6 +123,7 @@ export default function AppointmentArchive({ scope = "my", users = null }) {
   }, [scope]);
 
   const reload = () => {
+    invalidateApiCache(endpoint);
     setLoading(true);
     setError(null);
     setReloadKey((key) => key + 1);

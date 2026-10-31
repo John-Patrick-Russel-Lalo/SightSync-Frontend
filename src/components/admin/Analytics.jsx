@@ -26,6 +26,8 @@ import {
   Sparkles,
 } from "lucide-react";
 import { toLocalDateString, wallClockTimeMs } from "../../utils/dateTime";
+import { cachedFetch } from "../../utils/apiCache";
+import { formatCount } from "../../utils/formatNumber";
 
 const API_URL = import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500";
 
@@ -44,10 +46,13 @@ const MODES = [
   },
 ];
 
+const ALL_TIME_RANGE = "all";
+
 const RANGE_OPTIONS = [
   { id: 7, label: "Last 7 Days" },
   { id: 30, label: "Last 30 Days" },
   { id: 90, label: "Last 90 Days" },
+  { id: ALL_TIME_RANGE, label: "All Time" },
 ];
 
 const SEVERITY = {
@@ -89,7 +94,7 @@ const formatPercent = (n) => `${(Number(n) || 0).toFixed(1)}%`;
 const toLocalISO = toLocalDateString;
 
 const fetchJson = async (url) => {
-  const res = await fetch(url, {
+  const res = await cachedFetch(url, {
     credentials: "include",
     headers: { "Content-Type": "application/json" },
   });
@@ -174,8 +179,36 @@ export default function Analytics({ onNavigate }) {
   const [appointments, setAppointments] = useState([]);
   const [archives, setArchives] = useState([]);
 
+  const isAllTime = rangeDays === ALL_TIME_RANGE;
+
   const bounds = useMemo(() => {
     const endDate = new Date();
+    const endISO = toLocalISO(endDate);
+    const end = endDate.getTime() + 86400000 - 1;
+
+    if (rangeDays === ALL_TIME_RANGE) {
+      const stamps = [
+        ...sales.map((s) => toTime(s.created_at)),
+        ...appointments.map((a) => toTime(a.start_time || a.date)),
+        ...archives.map((a) => toTime(a.archived_at || a.start_time)),
+        ...users.map((u) => toTime(u.created_at)),
+      ].filter((time) => time !== null);
+
+      const earliest = stamps.length > 0 ? Math.min(...stamps) : endDate.getTime();
+      const startDate = new Date(earliest);
+      startDate.setHours(0, 0, 0, 0);
+
+      return {
+        startISO: toLocalISO(startDate),
+        endISO,
+        start: startDate.getTime(),
+        end,
+        prevStart: null,
+        prevEnd: null,
+        isAllTime: true,
+      };
+    }
+
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - (rangeDays - 1));
     const prevEnd = new Date(startDate);
@@ -185,13 +218,14 @@ export default function Analytics({ onNavigate }) {
 
     return {
       startISO: toLocalISO(startDate),
-      endISO: toLocalISO(endDate),
+      endISO,
       start: startDate.getTime(),
-      end: endDate.getTime() + 86400000 - 1,
+      end,
       prevStart: prevStart.getTime(),
       prevEnd: prevEnd.getTime(),
+      isAllTime: false,
     };
-  }, [rangeDays]);
+  }, [rangeDays, sales, appointments, archives, users]);
 
   const loadAnalytics = useCallback(async () => {
     setLoading(true);
@@ -213,7 +247,7 @@ export default function Analytics({ onNavigate }) {
       },
       {
         key: "sales",
-        run: async () => setSales(toList(await fetchJson(`${API_URL}/pos/sales?limit=200`))),
+        run: async () => setSales(toList(await fetchJson(`${API_URL}/pos/sales?limit=1000`))),
       },
       {
         key: "appointments",
@@ -246,6 +280,7 @@ export default function Analytics({ onNavigate }) {
 
   const inWindow = useCallback(
     (time, from = bounds.start, to = bounds.end) => {
+      if (from === null || to === null) return false;
       const stamp = toTime(time);
       return stamp !== null && stamp >= from && stamp <= to;
     },
@@ -314,6 +349,7 @@ export default function Analytics({ onNavigate }) {
   /* ------------------------- Comparison availability --------------------- */
 
   const comparisonReady = useMemo(() => {
+    if (bounds.prevStart === null) return false;
     const stamps = [
       ...sales.map((s) => toTime(s.created_at)),
       ...appointments.map((a) => toTime(a.start_time || a.date)),
@@ -513,6 +549,28 @@ export default function Analytics({ onNavigate }) {
   /* -------------------------------- Charts -------------------------------- */
 
   const buckets = useMemo(() => {
+    if (bounds.isAllTime) {
+      const list = [];
+      const cursor = new Date(bounds.start);
+      cursor.setDate(1);
+      cursor.setHours(0, 0, 0, 0);
+
+      while (cursor.getTime() <= bounds.end) {
+        const from = cursor.getTime();
+        const next = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+        list.push({
+          from,
+          to: Math.min(next.getTime() - 1, bounds.end),
+          label: cursor.toLocaleDateString("en-US", { month: "short", year: "numeric" }),
+        });
+        cursor.setMonth(cursor.getMonth() + 1);
+      }
+
+      return list.length > 0
+        ? list
+        : [{ from: bounds.start, to: bounds.end, label: toLocalISO(new Date(bounds.start)) }];
+    }
+
     const count = rangeDays <= 30 ? rangeDays : Math.ceil(rangeDays / 7);
     const stepMs = (bounds.end - bounds.start + 1) / count;
     const list = [];
@@ -934,7 +992,9 @@ export default function Analytics({ onNavigate }) {
           period: {
             startISO: bounds.startISO,
             endISO: bounds.endISO,
-            rangeDays,
+            rangeDays: isAllTime
+              ? Math.max(1, Math.ceil((bounds.end - bounds.start + 1) / 86400000))
+              : rangeDays,
             comparisonReady,
           },
           stats: {
@@ -1093,7 +1153,9 @@ export default function Analytics({ onNavigate }) {
           {!comparisonReady && mode === "descriptive" && (
             <span className="inline-flex items-center gap-1.5 text-amber-700 bg-amber-100/60 border border-amber-200 px-2.5 py-1 rounded-full font-medium">
               <Info className="w-3.5 h-3.5" />
-              Not enough history for period-over-period comparison
+              {isAllTime
+                ? "All-time totals - no period-over-period comparison"
+                : "Not enough history for period-over-period comparison"}
             </span>
           )}
         </div>
@@ -1184,6 +1246,7 @@ export default function Analytics({ onNavigate }) {
         <DescriptiveView
           kpis={kpis}
           comparisonReady={comparisonReady}
+          allTime={isAllTime}
           revenueTrend={revenueTrend}
           appointmentTrend={appointmentTrend}
           salesStats={salesStats}
@@ -1211,6 +1274,7 @@ export default function Analytics({ onNavigate }) {
 function DescriptiveView({
   kpis,
   comparisonReady,
+  allTime,
   revenueTrend,
   appointmentTrend,
   salesStats,
@@ -1223,7 +1287,7 @@ function DescriptiveView({
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
         {kpis.map((kpi) => (
-          <KpiCard key={kpi.key} {...kpi} comparisonReady={comparisonReady} />
+          <KpiCard key={kpi.key} {...kpi} comparisonReady={comparisonReady} allTime={allTime} />
         ))}
       </div>
 
@@ -1388,7 +1452,7 @@ function PrescriptiveView({ insights, groups, severityCounts, reviewed, onToggle
               </div>
               <div className="min-w-0">
                 <div className="text-xl font-extrabold text-stone-900">
-                  {severityCounts[severity]}
+                  {formatCount(severityCounts[severity])}
                 </div>
                 <div className="text-xs font-semibold text-stone-500 uppercase tracking-wider truncate">
                   {config.label}
@@ -1402,7 +1466,7 @@ function PrescriptiveView({ insights, groups, severityCounts, reviewed, onToggle
       <div className="p-4 bg-blue-50 border border-blue-200 rounded-2xl flex items-start gap-3 text-sm text-blue-900">
         <Lightbulb className="w-5 h-5 shrink-0 mt-0.5 text-blue-600" />
         <p>
-          {insights.length} recommendation{insights.length === 1 ? "" : "s"} generated from live
+            {formatCount(insights.length)} recommendation{insights.length === 1 ? "" : "s"} generated from live
           thresholds across scheduling, inventory, sales, patient, and doctor data. Ticking a card
           marks it as reviewed for this session.
         </p>
@@ -1413,7 +1477,7 @@ function PrescriptiveView({ insights, groups, severityCounts, reviewed, onToggle
           <h3 className="text-sm font-bold uppercase tracking-wider text-stone-500 flex items-center gap-2">
             {category}
             <span className="text-xs font-medium text-stone-400 normal-case tracking-normal">
-              {items.length} item{items.length === 1 ? "" : "s"}
+              {formatCount(items.length)} item{items.length === 1 ? "" : "s"}
             </span>
           </h3>
 
@@ -1517,7 +1581,7 @@ function Panel({ title, subtitle, icon, className = "", children }) {
   );
 }
 
-function KpiCard({ title, value, delta, icon, hint, invert = false, comparisonReady }) {
+function KpiCard({ title, value, delta, icon, hint, invert = false, comparisonReady, allTime = false }) {
   const trend =
     delta === null || delta === undefined
       ? { key: "none", label: "Snapshot", Icon: Minus, className: "text-stone-500 bg-stone-200/70" }
@@ -1539,7 +1603,7 @@ function KpiCard({ title, value, delta, icon, hint, invert = false, comparisonRe
         </span>
         <div className="p-2.5 bg-[#F2EAE1] rounded-xl border border-[#E3D8CC] shrink-0">{icon}</div>
       </div>
-      <div className="text-2xl font-extrabold text-stone-900 break-words">{value}</div>
+        <div className="text-2xl font-extrabold text-stone-900 break-words">{formatCount(value)}</div>
       <div className="flex items-center justify-between gap-2">
         <span
           className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold ${trend.className} ${
@@ -1547,7 +1611,7 @@ function KpiCard({ title, value, delta, icon, hint, invert = false, comparisonRe
           }`}
         >
           <TrendIcon className="w-3 h-3" />
-          {comparisonReady ? trend.label : "No baseline"}
+          {allTime ? "All-time total" : comparisonReady ? trend.label : "No baseline"}
         </span>
         {(isGood || isBad) && (
           <span
@@ -1650,7 +1714,7 @@ function MiniStat({ label, value }) {
       <div className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider truncate">
         {label}
       </div>
-      <div className="mt-0.5 text-sm font-bold text-stone-900 break-words">{value}</div>
+      <div className="mt-0.5 text-sm font-bold text-stone-900 break-words">{formatCount(value)}</div>
     </div>
   );
 }

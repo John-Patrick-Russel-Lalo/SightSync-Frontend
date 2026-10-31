@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { clearApiCache } from "../utils/apiCache";
 
 const AuthContext = createContext(null);
 
@@ -41,6 +42,7 @@ export const AuthProvider = ({ children }) => {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || "Login failed");
+    clearApiCache();
     setUser(data.user);
     return data.user;
   };
@@ -60,6 +62,7 @@ export const AuthProvider = ({ children }) => {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || "Registration failed");
+    clearApiCache();
     return data;
   };
 
@@ -67,6 +70,7 @@ export const AuthProvider = ({ children }) => {
     try {
       await fetch(`${API_BASE}/logout`, { credentials: "include" });
     } finally {
+      clearApiCache();
       setUser(null);
     }
   };

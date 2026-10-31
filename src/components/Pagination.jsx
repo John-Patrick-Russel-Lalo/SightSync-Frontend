@@ -1,4 +1,5 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { formatCount } from "../utils/formatNumber";
 
 function buildPages(page, pageCount) {
   if (pageCount <= 7) {
@@ -38,8 +39,11 @@ export default function Pagination({
       className={`flex flex-col gap-3 border-t border-[#EBE3D8] bg-[#FAF7F2]/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between ${className}`}
     >
       <p className="text-xs font-medium text-[#8B7562]">
-        Showing <span className="text-[#3D2E28]">{startIndex + 1}–{endIndex}</span> of{" "}
-        <span className="text-[#3D2E28]">{total}</span> {itemLabel}
+        Showing{" "}
+        <span className="text-[#3D2E28]">
+          {formatCount(startIndex + 1)}–{formatCount(endIndex)}
+        </span>{" "}
+        of <span className="text-[#3D2E28]">{formatCount(total)}</span> {itemLabel}
       </p>
 
       <div className="flex items-center gap-1.5">
@@ -66,7 +70,7 @@ export default function Pagination({
                   : "border-[#DCD0C0] bg-white text-[#5B4B41] hover:bg-[#F2EAE1]"
               }`}
             >
-              {entry}
+              {formatCount(entry)}
             </button>
           ) : (
             <span key={entry} className="px-1 text-sm text-[#8B7562]">

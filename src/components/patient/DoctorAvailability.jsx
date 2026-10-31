@@ -9,6 +9,7 @@ import {
   WifiOff,
 } from "lucide-react";
 import { useNotifications } from "../../context/NotificationContext";
+import { cachedFetch } from "../../utils/apiCache";
 
 const API_URL =
   import.meta.env.VITE_PROD_URL ||
@@ -50,7 +51,7 @@ export default function DoctorAvailability({ onBook }) {
   useEffect(() => {
     let cancelled = false;
 
-    fetch(`${API_URL}/doctors/available`, {
+    cachedFetch(`${API_URL}/doctors/available`, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -66,7 +67,7 @@ export default function DoctorAvailability({ onBook }) {
         if (!cancelled) setError(err.message);
       });
 
-    fetch(`${API_URL}/doctors/status`, {
+    cachedFetch(`${API_URL}/doctors/status`, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -102,12 +103,12 @@ export default function DoctorAvailability({ onBook }) {
     setError(null);
     try {
       const [listRes, statusRes] = await Promise.all([
-        fetch(`${API_URL}/doctors/available`, {
+    cachedFetch(`${API_URL}/doctors/available`, {
           method: "GET",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
         }),
-        fetch(`${API_URL}/doctors/status`, {
+        cachedFetch(`${API_URL}/doctors/status`, {
           method: "GET",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
@@ -251,7 +252,7 @@ export default function DoctorAvailability({ onBook }) {
                       <span className="block text-xs text-[#8B7562] truncate">
                         {doc.specialty || "General"}
                         {doc.consultation_fee
-                          ? ` — ₱${parseFloat(doc.consultation_fee).toFixed(2)}`
+                          ? ` — ₱${parseFloat(doc.consultation_fee).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                           : ""}
                       </span>
                       <span

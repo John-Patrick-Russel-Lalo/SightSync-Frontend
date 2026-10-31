@@ -18,6 +18,8 @@ import {
   CircleDollarSign,
 } from "lucide-react";
 import Pagination from "../Pagination";
+import { cachedFetch, prefetch } from "../../utils/apiCache";
+import { formatCount } from "../../utils/formatNumber";
 
 const API_BASE_URL = `${import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500"}/inventory`;
 const CATALOG_FETCH_LIMIT = 500;
@@ -27,7 +29,6 @@ const TAB_DEFS = [
   { id: "inventory", label: "All Inventory", icon: Package },
   { id: "frames", label: "Frames Catalog", icon: Glasses },
   { id: "lenses", label: "Lenses Catalog", icon: Aperture },
-  { id: "low-stock", label: "Low Stock", icon: AlertTriangle },
 ];
 
 const EMPTY_FRAME_FORM = {
@@ -74,6 +75,9 @@ export default function InventoryManager() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [stockFilter, setStockFilter] = useState("all");
+  const [brandFilter, setBrandFilter] = useState("all");
+  const [brandOptions, setBrandOptions] = useState([]);
   const [page, setPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [summary, setSummary] = useState({
@@ -102,22 +106,11 @@ export default function InventoryManager() {
   const [lensesList, setLensesList] = useState([]);
   const [catalogLoading, setCatalogLoading] = useState(false);
 
-  // Unified fetch utility that automatically includes cookie credentials
-  const fetchWithCredentials = async (url, options = {}) => {
-    return fetch(url, {
-      ...options,
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        ...options.headers,
-      },
-    });
-  };
+  const fetchWithCredentials = (url, options = {}) => cachedFetch(url, options);
 
   const buildEndpoint = (tab) => {
     if (tab === "frames") return `${API_BASE_URL}/frames`;
     if (tab === "lenses") return `${API_BASE_URL}/lenses`;
-    if (tab === "low-stock") return `${API_BASE_URL}/low-stock`;
     return API_BASE_URL;
   };
 
@@ -131,10 +124,13 @@ export default function InventoryManager() {
       });
       const search = searchTerm.trim();
       if (search) params.set("search", search);
+      if (brandFilter !== "all") params.set("brand", brandFilter);
+      if (activeTab === "inventory" && stockFilter !== "all") {
+        params.set("stockStatus", stockFilter);
+      }
 
-      const response = await fetchWithCredentials(
-        `${buildEndpoint(activeTab)}?${params.toString()}`
-      );
+      const requestUrl = `${buildEndpoint(activeTab)}?${params.toString()}`;
+      const response = await fetchWithCredentials(requestUrl);
 
       if (response.status === 401 || response.status === 403) {
         throw new Error("Unauthorized: You must be logged in as an administrator.");
@@ -144,8 +140,15 @@ export default function InventoryManager() {
       if (!response.ok) throw new Error(result.error || result.message || "Failed to fetch");
 
       const rows = result.data || [];
+      const total = Number(result.total ?? result.count ?? rows.length);
       setItems(rows);
-      setTotalItems(Number(result.total ?? result.count ?? rows.length));
+      setTotalItems(total);
+
+      if (rows.length === PAGE_SIZE && page * PAGE_SIZE < total) {
+        const nextParams = new URLSearchParams(params);
+        nextParams.set("offset", String(page * PAGE_SIZE));
+        prefetch(`${buildEndpoint(activeTab)}?${nextParams.toString()}`);
+      }
 
       if (rows.length === 0 && page > 1) {
         setPage((current) => Math.max(1, current - 1));
@@ -168,14 +171,35 @@ export default function InventoryManager() {
     }
   };
 
+  const fetchBrands = async () => {
+    try {
+      const type =
+        activeTab === "frames" ? "frame" : activeTab === "lenses" ? "lens" : "";
+      const response = await fetchWithCredentials(
+        `${API_BASE_URL}/brands${type ? `?type=${type}` : ""}`
+      );
+      if (!response.ok) return;
+      const result = await response.json();
+      if (Array.isArray(result.data)) setBrandOptions(result.data);
+    } catch {
+      // Keep the previously loaded brand options if this request fails.
+    }
+  };
+
   useEffect(() => {
     const timer = setTimeout(() => fetchData(), 250);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, page, searchTerm]);
+  }, [activeTab, page, searchTerm, stockFilter, brandFilter]);
 
   useEffect(() => {
     const timer = setTimeout(() => fetchSummary(), 0);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => fetchBrands(), 0);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
@@ -324,7 +348,11 @@ export default function InventoryManager() {
     }
   };
 
-  const formatCurrency = (n) => `₱${Number(n || 0).toFixed(2)}`;
+  const formatCurrency = (n) =>
+    `₱${Number(n || 0).toLocaleString("en-PH", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
 
   return (
     <div className="space-y-6 sm:space-y-8 w-full">
@@ -363,6 +391,7 @@ export default function InventoryManager() {
                 key={tab.id}
                 onClick={() => {
                   setActiveTab(tab.id);
+                  setBrandFilter("all");
                   setPage(1);
                 }}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition whitespace-nowrap ${
@@ -391,7 +420,7 @@ export default function InventoryManager() {
       </div>
 
       {/* Summary Stats */}
-      {(activeTab === "inventory" || activeTab === "low-stock") && !loading && !error && (
+      {activeTab === "inventory" && !loading && !error && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
           <StatCard
             title="Total SKUs"
@@ -422,22 +451,53 @@ export default function InventoryManager() {
               {TAB_DEFS.find((t) => t.id === activeTab)?.label}
             </h3>
             <p className="text-xs text-stone-500 mt-0.5">
-              {totalItems} record{totalItems === 1 ? "" : "s"} loaded
+              {formatCount(totalItems)} record{totalItems === 1 ? "" : "s"} loaded
             </p>
           </div>
 
-          <div className="relative w-full sm:w-72">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
-            <input
-              type="text"
-              placeholder="Search SKU, brand, model..."
-              value={searchTerm}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+            <div className="relative w-full sm:w-64">
+              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
+              <input
+                type="text"
+                placeholder="Search SKU, brand, model..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setPage(1);
+                }}
+                className="pl-10 pr-4 py-2 bg-[#F2EAE1] border border-[#DCD0C0] rounded-xl text-sm text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#8B1E42]/20 focus:border-[#8B1E42] w-full"
+              />
+            </div>
+            <select
+              value={brandFilter}
               onChange={(e) => {
-                setSearchTerm(e.target.value);
+                setBrandFilter(e.target.value);
                 setPage(1);
               }}
-              className="pl-10 pr-4 py-2 bg-[#F2EAE1] border border-[#DCD0C0] rounded-xl text-sm text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#8B1E42]/20 focus:border-[#8B1E42] w-full"
-            />
+              className="bg-[#F2EAE1] border border-[#DCD0C0] rounded-xl px-3 py-2 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[#8B1E42]/20 focus:border-[#8B1E42] cursor-pointer font-medium"
+            >
+              <option value="all">All Brands</option>
+              {brandOptions.map((brand) => (
+                <option key={brand} value={brand}>
+                  {brand}
+                </option>
+              ))}
+            </select>
+            {activeTab === "inventory" && (
+              <select
+                value={stockFilter}
+                onChange={(e) => {
+                  setStockFilter(e.target.value);
+                  setPage(1);
+                }}
+                className="bg-[#F2EAE1] border border-[#DCD0C0] rounded-xl px-3 py-2 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[#8B1E42]/20 focus:border-[#8B1E42] cursor-pointer font-medium"
+              >
+                <option value="all">All Stock</option>
+                <option value="low">Low Stock</option>
+                <option value="good">Good Stock</option>
+              </select>
+            )}
           </div>
         </div>
 
@@ -490,7 +550,7 @@ export default function InventoryManager() {
                       <th className="px-4 sm:px-6 py-3.5 text-right">Actions</th>
                     </>
                   )}
-                  {(activeTab === "inventory" || activeTab === "low-stock") && (
+                  {activeTab === "inventory" && (
                     <>
                       <th className="px-4 sm:px-6 py-3.5">SKU</th>
                       <th className="px-4 sm:px-6 py-3.5">Category</th>
@@ -541,7 +601,7 @@ export default function InventoryManager() {
                       </>
                     )}
 
-                    {(activeTab === "inventory" || activeTab === "low-stock") && (
+                    {activeTab === "inventory" && (
                       <>
                         <td className="px-4 sm:px-6 py-4">
                           <span className="font-mono font-bold text-stone-900">{item.sku}</span>
@@ -635,7 +695,7 @@ export default function InventoryManager() {
                 className={inputClass}
               />
               <p className="text-xs text-stone-500 mt-1.5">
-                Current stock: <strong className="text-stone-800">{selectedItem.quantity}</strong>
+                Current stock: <strong className="text-stone-800">{formatCount(selectedItem.quantity)}</strong>
               </p>
             </div>
 
@@ -940,7 +1000,7 @@ function StatCard({ title, value, icon, accent }) {
         <span className="text-xs font-semibold uppercase tracking-wider text-stone-500">{title}</span>
         <div className="p-2.5 bg-[#F2EAE1] rounded-xl border border-[#E3D8CC]">{icon}</div>
       </div>
-      <div className="text-2xl font-extrabold text-stone-900">{value}</div>
+      <div className="text-2xl font-extrabold text-stone-900">{formatCount(value)}</div>
       <div className="text-xs text-stone-500 font-medium">{accent}</div>
     </div>
   );

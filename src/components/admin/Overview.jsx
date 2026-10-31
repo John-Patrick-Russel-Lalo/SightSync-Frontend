@@ -22,13 +22,18 @@ import {
   toLocalDateStringFromValue,
   wallClockTimeMs,
 } from "../../utils/dateTime";
+import { cachedFetch } from "../../utils/apiCache";
+import { formatCount } from "../../utils/formatNumber";
 
 const API_URL = import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500";
+
+const ALL_TIME_RANGE = "all";
 
 const RANGE_OPTIONS = [
   { id: 7, label: "Last 7 Days" },
   { id: 30, label: "Last 30 Days" },
   { id: 90, label: "Last 90 Days" },
+  { id: ALL_TIME_RANGE, label: "All Time" },
 ];
 
 const formatCurrency = (n) =>
@@ -42,7 +47,7 @@ const formatNumber = (n) => Number(n || 0).toLocaleString();
 const toLocalISO = toLocalDateStringFromValue;
 
 const fetchJson = async (url) => {
-  const res = await fetch(url, {
+  const res = await cachedFetch(url, {
     credentials: "include",
     headers: { "Content-Type": "application/json" },
   });
@@ -105,12 +110,28 @@ export default function Overview({ onNavigate }) {
   const [appointments, setAppointments] = useState([]);
   const [archives, setArchives] = useState([]);
 
+  const isAllTime = rangeDays === ALL_TIME_RANGE;
+
   const { startDate, endDate } = useMemo(() => {
     const end = new Date();
+    if (rangeDays === ALL_TIME_RANGE) {
+      return { startDate: "2000-01-01", endDate: toLocalISO(end) };
+    }
     const start = new Date();
     start.setDate(start.getDate() - (rangeDays - 1));
     return { startDate: toLocalISO(start), endDate: toLocalISO(end) };
   }, [rangeDays]);
+
+  const earliestRecordISO = useMemo(() => {
+    const stamps = [
+      ...sales.map((s) => wallClockTimeMs(s.created_at)),
+      ...appointments.map((a) => wallClockTimeMs(a.start_time || a.date)),
+      ...archives.map((a) => wallClockTimeMs(a.archived_at || a.start_time)),
+      ...users.map((u) => wallClockTimeMs(u.created_at)),
+    ].filter((time) => Number.isFinite(time));
+    if (stamps.length === 0) return null;
+    return toLocalISO(new Date(Math.min(...stamps)));
+  }, [sales, appointments, archives, users]);
 
   const loadOverview = useCallback(async () => {
     setLoading(true);
@@ -134,7 +155,7 @@ export default function Overview({ onNavigate }) {
         key: "pos",
         run: async () => {
           const [salesBody, summaryBody] = await Promise.all([
-            fetchJson(`${API_URL}/pos/sales?limit=200`),
+            fetchJson(`${API_URL}/pos/sales?limit=1000`),
             fetchJson(
               `${API_URL}/pos/sales/summary?startDate=${startDate}&endDate=${endDate}`
             ),
@@ -371,7 +392,7 @@ export default function Overview({ onNavigate }) {
       top: Object.entries(doctorMap)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 3)
-        .map(([label, value]) => ({ id: label, name: label, meta: `${value} appointment${value === 1 ? "" : "s"}` })),
+        .map(([label, value]) => ({ id: label, name: label, meta: `${formatCount(value)} appointment${value === 1 ? "" : "s"}` })),
     };
   }, [appointments, archives, isInRange]);
 
@@ -507,7 +528,7 @@ export default function Overview({ onNavigate }) {
           ))}
         </div>
         <p className="text-xs text-stone-500 sm:ml-auto">
-          {startDate} &rarr; {endDate}
+          {isAllTime ? earliestRecordISO || startDate : startDate} &rarr; {endDate}
         </p>
       </div>
 
@@ -522,7 +543,7 @@ export default function Overview({ onNavigate }) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ReportCard
           title="Patient Management"
-          subtitle={`${patientReport.total} registered patient${patientReport.total === 1 ? "" : "s"}`}
+          subtitle={`${formatCount(patientReport.total)} registered patient${patientReport.total === 1 ? "" : "s"}`}
           icon={<UserCheck className="w-5 h-5 text-emerald-700" />}
           tabId="patients"
           onNavigate={onNavigate}
@@ -539,7 +560,7 @@ export default function Overview({ onNavigate }) {
 
         <ReportCard
           title="Doctor Management"
-          subtitle={`${doctorReport.profiled} profile${doctorReport.profiled === 1 ? "" : "s"} on file`}
+          subtitle={`${formatCount(doctorReport.profiled)} profile${doctorReport.profiled === 1 ? "" : "s"} on file`}
           icon={<Stethoscope className="w-5 h-5 text-cyan-700" />}
           tabId="doctors"
           onNavigate={onNavigate}
@@ -556,7 +577,7 @@ export default function Overview({ onNavigate }) {
 
         <ReportCard
           title="Inventory Management"
-          subtitle={`${inventoryReport.total} stock record${inventoryReport.total === 1 ? "" : "s"}`}
+          subtitle={`${formatCount(inventoryReport.total)} stock record${inventoryReport.total === 1 ? "" : "s"}`}
           icon={<Boxes className="w-5 h-5 text-amber-700" />}
           tabId="inventory"
           onNavigate={onNavigate}
@@ -593,7 +614,7 @@ export default function Overview({ onNavigate }) {
 
         <ReportCard
           title="Schedule Management"
-          subtitle={`${scheduleReport.total} appointment${scheduleReport.total === 1 ? "" : "s"} in window`}
+          subtitle={`${formatCount(scheduleReport.total)} appointment${scheduleReport.total === 1 ? "" : "s"} in window`}
           icon={<Calendar className="w-5 h-5 text-blue-700" />}
           tabId="schedules"
           onNavigate={onNavigate}
@@ -679,7 +700,7 @@ function StatCard({ title, value, icon, accent }) {
         </span>
         <div className="p-2.5 bg-[#F2EAE1] rounded-xl border border-[#E3D8CC] shrink-0">{icon}</div>
       </div>
-      <div className="text-2xl font-extrabold text-stone-900 break-words">{value}</div>
+      <div className="text-2xl font-extrabold text-stone-900 break-words">{formatCount(value)}</div>
       <div className="text-xs text-stone-500 font-medium">{accent}</div>
     </div>
   );
@@ -732,7 +753,7 @@ function Metric({ label, value }) {
   return (
     <div className="bg-[#F2EAE1] border border-[#E3D8CC] rounded-xl px-3 py-2.5 sm:px-4 sm:py-3">
       <div className="text-[10px] sm:text-xs font-semibold text-stone-500 uppercase tracking-wider truncate">{label}</div>
-      <div className="mt-0.5 text-sm font-bold text-stone-900 break-words">{value}</div>
+      <div className="mt-0.5 text-sm font-bold text-stone-900 break-words">{formatCount(value)}</div>
     </div>
   );
 }

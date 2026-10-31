@@ -35,6 +35,8 @@ import SettingsPage from "./SettingsPage";
 import AppointmentArchive from "./AppointmentArchive";
 import Pagination from "./Pagination";
 import { usePagination } from "../utils/usePagination";
+import { cachedFetch } from "../utils/apiCache";
+import { formatCount } from "../utils/formatNumber";
 
 // Express server mount point
 const API_USERS_URL = `${import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500"}/users`;
@@ -61,17 +63,7 @@ export default function AdminDashboard() {
   // Navigation tab state: 'overview' | 'users' | 'patients' | 'doctors' | 'inventory' | 'pos' | 'schedules' | 'doctor-schedules' | 'archive'
   const [activeTab, setActiveTab] = useState("overview");
 
-  // Unified fetch utility that automatically includes cookie credentials
-  const fetchWithCredentials = async (url, options = {}) => {
-    return fetch(url, {
-      ...options,
-      credentials: "include", // Sends session/HTTP-only cookies automatically
-      headers: {
-        "Content-Type": "application/json",
-        ...options.headers,
-      },
-    });
-  };
+  const fetchWithCredentials = (url, options = {}) => cachedFetch(url, options);
 
   // 1. GET /users - Fetch all users
   const fetchUsers = async () => {
@@ -272,7 +264,7 @@ export default function AdminDashboard() {
                   <div>
                     <h3 className="text-base sm:text-lg font-bold text-stone-900">User Directory</h3>
                     <p className="text-xs text-stone-500 mt-0.5">
-                      {filteredUsers.length} record{filteredUsers.length === 1 ? "" : "s"} loaded
+                      {formatCount(filteredUsers.length)} record{filteredUsers.length === 1 ? "" : "s"} loaded
                     </p>
                   </div>
                   <div className="flex flex-col sm:flex-row items-center gap-3">
@@ -524,7 +516,7 @@ function StatCard({ title, value, icon, trend }) {
         <span className="text-xs font-semibold uppercase tracking-wider text-stone-500">{title}</span>
         <div className="p-2.5 bg-[#F2EAE1] rounded-xl border border-[#E3D8CC]">{icon}</div>
       </div>
-      <div className="text-2xl font-extrabold text-stone-900">{value}</div>
+      <div className="text-2xl font-extrabold text-stone-900">{formatCount(value)}</div>
       <div className="text-xs text-stone-500 font-medium">{trend}</div>
     </div>
   );

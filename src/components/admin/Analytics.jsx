@@ -375,11 +375,6 @@ export default function Analytics({ onNavigate }) {
       revenueDelta: pctChange(revenue, prevRevenue),
       transactions,
       transactionsDelta: pctChange(transactions, prevTransactions),
-      average: transactions ? revenue / transactions : 0,
-      averageDelta: pctChange(
-        transactions ? revenue / transactions : 0,
-        prevTransactions ? prevRevenue / prevTransactions : 0
-      ),
       voided,
       voidRate: ratio(voided, salesInWindow.length),
       discounts,
@@ -637,14 +632,6 @@ export default function Analytics({ onNavigate }) {
       hint: `${formatNumber(salesStats.transactions)} completed sales`,
     },
     {
-      key: "average",
-      title: "Average Ticket",
-      value: formatCurrency(salesStats.average),
-      delta: comparisonReady ? salesStats.averageDelta : null,
-      icon: <ChartColumn className="w-5 h-5 text-[#8B1E42]" />,
-      hint: `${formatCurrency(salesStats.discounts)} in discounts given`,
-    },
-    {
       key: "appointments",
       title: "Appointments",
       value: formatNumber(appointmentStats.total),
@@ -789,25 +776,6 @@ export default function Analytics({ onNavigate }) {
         action: "Review slow movers",
         tabId: "inventory",
         metric: formatCurrency(inventoryStats.deadCapital),
-      });
-    }
-
-    /* Sales: ticket erosion */
-    if (
-      comparisonReady &&
-      salesStats.averageDelta !== null &&
-      salesStats.averageDelta < -10
-    ) {
-      push({
-        id: "ticket-erosion",
-        severity: "warning",
-        category: "Point of Sale",
-        title: `Average ticket dropped ${formatPercent(Math.abs(salesStats.averageDelta))} vs. last period`,
-        detail:
-          "Lower baskets usually mean customers are skipping lens or frame upgrades. Introduce a frame + lens bundle at a modest discount to lift attach rate.",
-        action: "Review sales history",
-        tabId: "pos",
-        metric: formatPercent(salesStats.averageDelta),
       });
     }
 
@@ -1001,7 +969,6 @@ export default function Analytics({ onNavigate }) {
             sales: {
               revenue: salesStats.revenue,
               transactions: salesStats.transactions,
-              averageTicket: salesStats.average,
               revenueDelta: salesStats.revenueDelta,
               transactionsDelta: salesStats.transactionsDelta,
               voided: salesStats.voided,

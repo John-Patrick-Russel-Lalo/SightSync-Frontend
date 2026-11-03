@@ -332,7 +332,6 @@ export default function Overview({ onNavigate }) {
       itemsSold,
       taxes,
       discounts,
-      average: transactions ? revenue / transactions : 0,
       voided: voided.length,
       segments: [
         { label: "Cash", value: methodMap.cash || 0, className: "bg-emerald-500" },
@@ -604,7 +603,6 @@ export default function Overview({ onNavigate }) {
         >
           <div className="grid grid-cols-2 gap-2 sm:gap-3">
             <Metric label="Revenue" value={formatCurrency(posReport.revenue)} />
-            <Metric label="Avg. ticket" value={formatCurrency(posReport.average)} />
             <Metric label="Items sold" value={formatNumber(posReport.itemsSold)} />
             <Metric label="Tax collected" value={formatCurrency(posReport.taxes)} />
           </div>

@@ -54,6 +54,23 @@ const BOOKING_MAX_DATE = (() => {
   return toLocalDateString(max);
 })();
 
+function resolveDoctorName(apt, doctors) {
+  if (apt?.doctor_name) return apt.doctor_name;
+  const doctor = doctors.find((d) => String(d.id) === String(apt?.doctor_id));
+  return doctor?.display_name || doctor?.username || `Doctor #${apt?.doctor_id}`;
+}
+
+function resolvePatientName(apt, patients) {
+  if (apt?.patient_name) return apt.patient_name;
+  const patient = patients.find((p) => String(p.id) === String(apt?.patient_id));
+  return (
+    patient?.display_name ||
+    patient?.username ||
+    patient?.email ||
+    `Patient #${apt?.patient_id}`
+  );
+}
+
 export default function ScheduleAppointmentPage() {
   const { user } = useAuth(); // Logged in user context
 
@@ -376,6 +393,8 @@ export default function ScheduleAppointmentPage() {
           String(apt.id).includes(term) ||
           String(apt.doctor_id).includes(term) ||
           String(apt.patient_id).includes(term) ||
+          resolveDoctorName(apt, doctors).toLowerCase().includes(term) ||
+          resolvePatientName(apt, patients).toLowerCase().includes(term) ||
           readableTimeStr.includes(term) ||
           (apt.notes && apt.notes.toLowerCase().includes(term));
 
@@ -402,11 +421,11 @@ export default function ScheduleAppointmentPage() {
 
         return diffA - diffB;
       });
-  }, [appointments, apptSearchTerm, apptStatusFilter, selectedCalendarDate]);
+  }, [appointments, apptSearchTerm, apptStatusFilter, selectedCalendarDate, doctors, patients]);
 
   // Slots on the selected date that already carry an unapproved request.
-  // A pending request does not hold the slot, so it stays bookable, but the
-  // admin is told that somebody is already waiting for it.
+  // A pending request does not hold the slot for other patients, so those
+  // slots stay bookable, but the admin is told that somebody is waiting.
   const requestedSlots = useMemo(() => {
     const slots = new Set();
 
@@ -424,6 +443,31 @@ export default function ScheduleAppointmentPage() {
 
     return slots;
   }, [appointments, selectedDoctorId, selectedDate]);
+
+  // The patient currently being booked (the logged-in patient, or the patient
+  // an admin picked). Their own pending request must not be submitted twice.
+  const targetPatientId =
+    user?.role === "patient" ? user?.id : selectedPatient?.id;
+
+  const blockedSlots = useMemo(() => {
+    const slots = new Set();
+    if (!targetPatientId) return slots;
+
+    for (const apt of appointments) {
+      if ((apt.status || "").toLowerCase() !== "pending") continue;
+      if (String(apt.doctor_id) !== String(selectedDoctorId)) continue;
+      if (String(apt.patient_id) !== String(targetPatientId)) continue;
+
+      const start = parseWallClock(apt.start_time || apt.date);
+      if (!start || toLocalDateString(start) !== selectedDate) continue;
+
+      slots.add(
+        `${String(start.getHours()).padStart(2, "0")}:${String(start.getMinutes()).padStart(2, "0")}`
+      );
+    }
+
+    return slots;
+  }, [appointments, selectedDoctorId, selectedDate, targetPatientId]);
 
 
    
@@ -797,17 +841,23 @@ const appointmentDatesSet = useMemo(() => {
                 {availableSlots.map((slot) => {
                   const isSelected = selectedSlot === slot;
                   const isRequested = requestedSlots.has(slot);
+                  const isBlocked = blockedSlots.has(slot);
                   return (
                     <button
                       type="button"
                       key={slot}
-                      onClick={() => setSelectedSlot(slot)}
+                      onClick={() => {
+                        if (!isBlocked) setSelectedSlot(slot);
+                      }}
+                      disabled={isBlocked}
                       title={
-                        isRequested
+                        isBlocked
+                          ? "This patient already has a pending request for this slot"
+                          : isRequested
                           ? "This slot already has a request waiting for approval"
                           : undefined
                       }
-                      className={`py-2 px-2 rounded-xl border text-xs font-medium transition flex flex-col items-center justify-center gap-0.5 ${
+                      className={`py-2 px-2 rounded-xl border text-xs font-medium transition flex flex-col items-center justify-center gap-0.5 disabled:cursor-not-allowed disabled:opacity-50 ${
                         isSelected
                           ? "bg-[#8B1E42] text-white border-[#8B1E42] shadow-sm"
                           : "bg-[#F2EAE1] text-stone-800 border-[#DCD0C0] hover:bg-[#EAE0D5]"
@@ -817,11 +867,15 @@ const appointmentDatesSet = useMemo(() => {
                         <Clock className="w-3 h-3" />
                         {slot}
                       </span>
-                      {isRequested && (
+                      {isBlocked ? (
+                        <span className="text-[9px] font-semibold uppercase tracking-wide opacity-80">
+                          Already requested
+                        </span>
+                      ) : isRequested ? (
                         <span className="text-[9px] font-semibold uppercase tracking-wide opacity-80">
                           Requested
                         </span>
-                      )}
+                      ) : null}
                     </button>
                   );
                 })}
@@ -832,8 +886,8 @@ const appointmentDatesSet = useMemo(() => {
               <p className="text-xs text-stone-500 mt-2">
                 Slots marked{" "}
                 <span className="font-semibold text-stone-700">Requested</span> already
-                have a request waiting for approval. They are not blocked until an
-                admin approves one of them.
+                have a request waiting for approval. They stay open for other patients,
+                but a patient cannot request the same slot twice.
               </p>
             )}
           </div>
@@ -1056,8 +1110,8 @@ const appointmentDatesSet = useMemo(() => {
 
                     <div className="text-xs text-stone-600 space-y-1">
                       <p>
-                        <strong>Doctor ID:</strong> {apt.doctor_id} |{" "}
-                        <strong>Patient ID:</strong> {apt.patient_id}
+                        <strong>Doctor:</strong> {resolveDoctorName(apt, doctors)} |{" "}
+                        <strong>Patient:</strong> {resolvePatientName(apt, patients)}
                       </p>
 
                       <p className="flex items-center gap-1.5 text-stone-900 font-semibold pt-0.5">
@@ -1228,8 +1282,8 @@ const appointmentDatesSet = useMemo(() => {
                   Half-Payment Proof — Appt #{paymentProofViewer.appointment.id}
                 </h3>
                 <p className="text-xs text-stone-500 mt-0.5">
-                  Patient ID: {paymentProofViewer.appointment.patient_id} • Doctor ID:{" "}
-                  {paymentProofViewer.appointment.doctor_id} •{" "}
+                  Patient: {resolvePatientName(paymentProofViewer.appointment, patients)} • Doctor:{" "}
+                  {resolveDoctorName(paymentProofViewer.appointment, doctors)} •{" "}
                   <strong className="text-stone-700">
                     {formatPeso(paymentProofViewer.appointment.payment_amount)} of{" "}
                     {formatPeso(paymentProofViewer.appointment.consultation_fee)}

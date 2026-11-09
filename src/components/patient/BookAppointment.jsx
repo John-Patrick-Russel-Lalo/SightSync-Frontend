@@ -17,7 +17,7 @@ import {
   Check,
   QrCode,
 } from "lucide-react";
-import { formatWallClockDate, parseWallClock, toLocalDateString } from "../../utils/dateTime";
+import { formatSlotTime, formatWallClockDate, parseWallClock, toLocalDateString } from "../../utils/dateTime";
 import { useNotifications } from "../../context/NotificationContext";
 import { cachedFetch } from "../../utils/apiCache";
 
@@ -455,7 +455,7 @@ export default function BookAppointment() {
                   const isRequested = requestedSlots.has(slot);
                   return (
                     <option key={slot} value={slot} disabled={isRequested}>
-                      {slot}
+                      {formatSlotTime(slot)}
                       {isRequested ? " — already requested" : ""}
                     </option>
                   );

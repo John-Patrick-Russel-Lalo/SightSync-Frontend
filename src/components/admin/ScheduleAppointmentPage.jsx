@@ -23,6 +23,7 @@ import {
 import { useAuth } from "../../context/AuthContext"; // Adjust path if necessary
 import {
   formatWallClockDate,
+  formatSlotTime,
   formatWallClockDateTime,
   parseWallClock,
   toLocalDateString,
@@ -865,7 +866,7 @@ const appointmentDatesSet = useMemo(() => {
                     >
                       <span className="flex items-center gap-1.5">
                         <Clock className="w-3 h-3" />
-                        {slot}
+                        {formatSlotTime(slot)}
                       </span>
                       {isBlocked ? (
                         <span className="text-[9px] font-semibold uppercase tracking-wide opacity-80">

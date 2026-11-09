@@ -96,6 +96,7 @@ export default function PosManager() {
   const [salesSearch, setSalesSearch] = useState("");
   const [startDate, setStartDate] = useState(defaultStartDate);
   const [endDate, setEndDate] = useState(() => toLocalISO(new Date()));
+  const [appliedRange, setAppliedRange] = useState(() => ({ startDate: defaultStartDate(), endDate: toLocalISO(new Date()) }));
   const [summary, setSummary] = useState(null);
   const [selectedSale, setSelectedSale] = useState(null);
   const [saleDetailLoading, setSaleDetailLoading] = useState(false);
@@ -167,13 +168,20 @@ export default function PosManager() {
     setSalesLoading(true);
     setSalesError(null);
     try {
-      const response = await fetchWithCredentials(`${API_POS_URL}/sales?limit=100`);
+      const params = new URLSearchParams({ limit: "100", startDate: appliedRange.startDate, endDate: appliedRange.endDate });
+      const rows = [];
+      let result;
+      do {
+      params.set("offset", String(rows.length));
+      const response = await fetchWithCredentials(`${API_POS_URL}/sales?${params}`);
       if (response.status === 401 || response.status === 403) {
         throw new Error("Unauthorized: You must be logged in as an administrator.");
       }
-      const result = await response.json();
+      result = await response.json();
       if (!response.ok) throw new Error(result.error || result.message || "Failed to fetch sales");
-      setSales(result.data || []);
+      rows.push(...(result.data || []));
+      } while (result.data?.length === 100);
+      setSales(rows);
     } catch (err) {
       setSalesError(err.message);
     } finally {
@@ -184,7 +192,7 @@ export default function PosManager() {
   const fetchSummary = async () => {
     try {
       const response = await fetchWithCredentials(
-        `${API_POS_URL}/sales/summary?startDate=${startDate}&endDate=${endDate}`
+        `${API_POS_URL}/sales/summary`
       );
       if (response.status === 401 || response.status === 403) {
         throw new Error("Unauthorized: You must be logged in as an administrator.");
@@ -245,10 +253,10 @@ export default function PosManager() {
 
   useEffect(() => {
     if (activeTab !== "sales") return;
-    const timer = setTimeout(() => fetchSummary(), 0);
+    const timer = setTimeout(() => fetchSales(), 0);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startDate, endDate]);
+  }, [appliedRange]);
 
   const productPageCount = Math.max(1, Math.ceil(productTotal / PRODUCT_PAGE_SIZE));
   const productRangeStart = (productPage - 1) * PRODUCT_PAGE_SIZE;
@@ -927,7 +935,7 @@ export default function PosManager() {
               title="Transactions"
               value={summary ? Number(summary.transaction_count || 0).toLocaleString() : "—"}
               icon={<ShoppingCart className="w-5 h-5 text-[#8B1E42]" />}
-              accent={`${startDate} to ${endDate}`}
+              accent="All time"
             />
             <StatCard
               title="Revenue"
@@ -976,8 +984,11 @@ export default function PosManager() {
             <div className="flex-1" />
             <button
               onClick={() => {
-                fetchSales();
-                fetchSummary();
+                if (!startDate || !endDate || startDate > endDate) {
+                  setSalesError("Select a valid date range.");
+                  return;
+                }
+                setAppliedRange({ startDate, endDate });
               }}
               className="inline-flex items-center gap-2 bg-[#8B1E42] text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-[#731836] transition shadow-sm"
             >

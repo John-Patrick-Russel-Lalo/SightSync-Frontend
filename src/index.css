@@ -1,5 +1,18 @@
 @import "tailwindcss";
 
+/* Keep entered values and hints legible across all forms and filter fields. */
+input:not([type="checkbox"]):not([type="radio"]),
+textarea,
+select {
+  color: #292524 !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #57534e !important;
+  opacity: 1;
+}
+
 /* ---------------------------------------------------------------------------
    Patient report printing
 

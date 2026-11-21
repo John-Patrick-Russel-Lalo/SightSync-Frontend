@@ -869,11 +869,11 @@ export default function LoginPage() {
 
           <div className="space-y-3">
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3">
 
               {/* GITHUB - ORIGINAL FUNCTIONALITY */}
 
-              <a
+              {false && <a
                 href={`${API_BASE}/github`}
                 className="
                   flex
@@ -894,7 +894,7 @@ export default function LoginPage() {
               >
                 <GitHubIcon className="w-4 h-4" />
                 GitHub
-              </a>
+              </a>}
 
               {/* GOOGLE */}
 
@@ -906,14 +906,14 @@ export default function LoginPage() {
                 justify-center
                 gap-2
                 rounded-lg
-                bg-white/65
-                hover:bg-white/80
+                bg-white
+                hover:bg-[#f2f2f2]
                 backdrop-blur-md
                 border
-                border-white/80
+                border-[#dadce0]
                 py-2.5
                 text-sm
-                text-[#493a36]
+                text-[#3c4043]
                 transition-colors
                 no-underline
               "

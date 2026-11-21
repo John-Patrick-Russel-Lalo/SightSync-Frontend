@@ -90,6 +90,16 @@ export const NotificationProvider = ({ children }) => {
         return [notification, ...prev];
       });
       showToast(notification);
+      // This preference is stored per account by SettingsPage. Native browser
+      // alerts complement the in-app toast when the portal is in the background.
+      try {
+        const stored = JSON.parse(localStorage.getItem(`sightsync:settings:${userId}`) || "{}");
+        if (stored.browserAlerts && window.Notification?.permission === "granted") {
+          new Notification(notification.title, { body: notification.detail });
+        }
+      } catch {
+        // A browser alert must never interfere with the live in-app notification.
+      }
     });
 
     socket.on("notification:read", ({ notification }) => {

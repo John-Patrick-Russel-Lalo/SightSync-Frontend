@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+html[data-portal-text="large"] { font-size: 18px; }
+html[data-portal-density="compact"] main { --spacing: 0.875rem; }
+html[data-reduce-motion="true"] *,
+html[data-reduce-motion="true"] *::before,
+html[data-reduce-motion="true"] *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+
 /* Keep entered values and hints legible across all forms and filter fields. */
 input:not([type="checkbox"]):not([type="radio"]),
 textarea,

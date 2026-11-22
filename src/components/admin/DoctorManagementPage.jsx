@@ -1033,6 +1033,12 @@ export default function DoctorManagementPage() {
     );
   }, [doctors, searchTerm]);
 
+  const selectedDoctorName =
+    selectedDoctor?.display_name ||
+    selectedDoctor?.username ||
+    selectedDoctor?.email ||
+    "Doctor";
+
   return (
     <div className="space-y-6 sm:space-y-8 w-full">
       {/* Page Header */}
@@ -1195,7 +1201,7 @@ export default function DoctorManagementPage() {
             <div className="flex items-center justify-between p-4 sm:p-5 border-b border-[#EBE3D8] bg-[#FAF7F2]">
               <h2 className="text-base sm:text-lg font-bold text-stone-900">
                 {selectedDoctor
-                  ? `Manage: ${selectedDoctor.display_name}`
+                  ? `Manage: ${selectedDoctorName}`
                   : "Create Doctor Profile"}
               </h2>
               <button
@@ -1263,15 +1269,15 @@ export default function DoctorManagementPage() {
                           src={
                             selectedDoctor.avatar_url ||
                             `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                              selectedDoctor.display_name || "Doctor"
+                              selectedDoctorName
                             )}&background=8B1E42&color=fff`
                           }
-                          alt={selectedDoctor.display_name}
+                          alt={selectedDoctorName}
                           className="w-10 h-10 rounded-full border border-[#DCD0C0]"
                         />
                         <div>
                           <div className="text-sm font-semibold text-stone-900">
-                            {selectedDoctor.display_name} (@{selectedDoctor.username})
+                            {selectedDoctorName} (@{selectedDoctor.username})
                           </div>
                           <div className="text-xs text-stone-500">{selectedDoctor.email}</div>
                         </div>

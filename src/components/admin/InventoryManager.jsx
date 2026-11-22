@@ -91,6 +91,10 @@ export default function InventoryManager() {
   const [isStockModalOpen, setIsStockModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [newQuantity, setNewQuantity] = useState("0");
+  const [priceItem, setPriceItem] = useState(null);
+  const [priceForm, setPriceForm] = useState({ unitCost: "", sellingPrice: "" });
+  const [priceError, setPriceError] = useState("");
+  const [savingPrices, setSavingPrices] = useState(false);
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [createType, setCreateType] = useState("inventory");
@@ -243,6 +247,33 @@ export default function InventoryManager() {
     resetForms(type);
     setIsCreateModalOpen(true);
     fetchCatalogs();
+  };
+
+  const handleUpdatePrices = async (e) => {
+    e.preventDefault();
+    if (!priceItem || savingPrices) return;
+    setPriceError("");
+    const prices = { unitCost: Number(priceForm.unitCost), sellingPrice: Number(priceForm.sellingPrice) };
+    if (Object.values(priceForm).some((value) => String(value).trim() === "") ||
+        Object.values(prices).some((value) => !Number.isFinite(value) || value < 0)) {
+      setPriceError("Enter a valid non-negative amount for both prices.");
+      return;
+    }
+    setSavingPrices(true);
+    try {
+      const response = await fetchWithCredentials(`${API_BASE_URL}/${priceItem.id}/prices`, {
+        method: "PATCH",
+        body: JSON.stringify(prices),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || result.message || "Failed to update prices.");
+      setPriceItem(null);
+      await Promise.all([fetchData(), fetchSummary()]);
+    } catch (err) {
+      setPriceError(err.message);
+    } finally {
+      setSavingPrices(false);
+    }
   };
 
   // Stock Adjustment Handler
@@ -648,6 +679,17 @@ export default function InventoryManager() {
                             <PencilLine className="w-3.5 h-3.5" />
                             Adjust Stock
                           </button>
+                          <button
+                            onClick={() => {
+                              setPriceItem(item);
+                              setPriceForm({ unitCost: String(item.unit_cost ?? 0), sellingPrice: String(item.selling_price ?? 0) });
+                              setPriceError("");
+                            }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-[#8B1E42] bg-[#8B1E42]/10 hover:bg-[#8B1E42] hover:text-white transition mr-2"
+                          >
+                            <CircleDollarSign className="w-3.5 h-3.5" />
+                            Update Prices
+                          </button>
                           <DeleteButton onClick={() => handleDelete(item.id, "inventory")} />
                         </td>
                       </>
@@ -668,6 +710,43 @@ export default function InventoryManager() {
           itemLabel="records"
         />
       </section>
+
+      {priceItem && (
+        <ModalLayer>
+          <ModalHeader
+            title="Update Prices"
+            subtitle={`SKU: ${priceItem.sku}`}
+            onClose={() => { if (!savingPrices) setPriceItem(null); }}
+          />
+          <form onSubmit={handleUpdatePrices} className="space-y-5">
+            {[["unitCost", "Unit Cost (PHP)"], ["sellingPrice", "Selling Price (PHP)"]].map(([field, label]) => (
+              <div key={field}>
+                <label htmlFor={`price-${field}`} className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-2">
+                  {label}
+                </label>
+                <input
+                  id={`price-${field}`}
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  required
+                  disabled={savingPrices}
+                  value={priceForm[field]}
+                  onChange={(e) => setPriceForm((current) => ({ ...current, [field]: e.target.value }))}
+                  className={inputClass}
+                />
+              </div>
+            ))}
+            {priceError && <p role="alert" className="text-sm text-red-600">{priceError}</p>}
+            <ModalActions
+              onCancel={() => { if (!savingPrices) setPriceItem(null); }}
+              submitLabel="Save Prices"
+              submittingLabel="Saving..."
+              submitting={savingPrices}
+            />
+          </form>
+        </ModalLayer>
+      )}
 
       {/* Modal: Adjust Stock */}
       {isStockModalOpen && selectedItem && (

@@ -28,10 +28,17 @@ import {
 import { toLocalDateString, wallClockTimeMs } from "../../utils/dateTime";
 import { cachedFetch } from "../../utils/apiCache";
 import { formatCount } from "../../utils/formatNumber";
+import Forecasting from "./Forecasting";
 
 const API_URL = import.meta.env.VITE_PROD_URL || import.meta.env.VITE_API_URL || "http://localhost:3500";
 
 const MODES = [
+  {
+    id: "forecasting",
+    label: "Forecasting",
+    icon: TrendingUp,
+    blurb: "Projected revenue, sales, and appointment volume based on recent activity.",
+  },
   {
     id: "descriptive",
     label: "Descriptive",
@@ -1128,7 +1135,7 @@ export default function Analytics({ onNavigate }) {
         </div>
       </div>
 
-      {hasData && (
+      {hasData && mode !== "forecasting" && (
         <div className="bg-[#F8F3EC] border border-[#DCD0C0] rounded-2xl shadow-sm p-4 sm:p-5 space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
@@ -1209,6 +1216,8 @@ export default function Analytics({ onNavigate }) {
             Retry
           </button>
         </div>
+      ) : mode === "forecasting" ? (
+        <Forecasting sales={sales} appointments={appointments} archives={archives} rangeDays={rangeDays} errors={errors} loading={loading} />
       ) : mode === "descriptive" ? (
         <DescriptiveView
           kpis={kpis}

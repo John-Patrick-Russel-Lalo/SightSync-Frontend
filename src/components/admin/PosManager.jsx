@@ -45,7 +45,6 @@ const CATEGORY_FILTERS = [
   { id: "all", label: "All" },
   { id: "frame", label: "Frames" },
   { id: "lens", label: "Lenses" },
-  { id: "accessory", label: "Accessories" },
 ];
 
 const PRODUCT_PAGE_SIZE = 12;
